@@ -50,3 +50,11 @@ cryptographic or GitHub CI attestation.
 ## References
 
 OpenAI Responses API Structured Outputs and non-interactive Codex exec documentation.
+
+## Credential-safe HTTPS transport (2026-10-10)
+
+- Model proposal requests now use the **fixed** `https://api.openai.com/v1/responses` endpoint, a standard certificate-validating HTTPS handler, and an opener that **does not follow HTTP redirects**.
+- The request ignores ambient `HTTP_PROXY`/`HTTPS_PROXY` settings via an empty explicit proxy handler. This is intentional fail-closed behavior and may require an approved future proxy integration for enterprise networks.
+- An HTTP 30x response is treated as an error; the API key must not be forwarded to redirect targets. The final effective response URL must equal the approved API URL.
+- Tests verify redirect rejection, empty proxy configuration, one-request behavior, redacted redirect errors and destination mismatch.
+- This is application-layer outbound request hardening, **not host egress filtering**, API key escrow, secure coding-agent sandboxing or evidence attestation. No paid model request was made to verify this change.

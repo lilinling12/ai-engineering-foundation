@@ -39,3 +39,10 @@ Last observed: 2026-10-10. **This file is a checkpoint, not a live GitHub status
 ## Explicitly NOT achieved
 No closed Gates, production adoption, authenticated human approval, general hostile-code
 sandbox, Codex CLI / Claude Code runtime, or independent cryptographic attestations.
+
+## 2026-10-10 G1.3 outbound credential boundary
+
+- PR #5 inference transport rejects HTTP redirects and ambient proxies to avoid
+  forwarding model credentials off the single approved HTTPS endpoint.
+- G1.3 transport tests and source are synchronized into this PR's stacked ancestry.
+- Recheck current SHA and exact-head checks after this change; no Gate is closed.

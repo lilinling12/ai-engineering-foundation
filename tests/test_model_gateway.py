@@ -2,12 +2,15 @@ import json
 import os
 from pathlib import Path
 import tempfile
+import urllib.error
+import urllib.request
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 from foundation.model_gateway import (
     ModelGatewayError, OpenAIProposalProvider, extract_proposal,
     propose_fixture, request_payload, run_live_proposal,
+    _make_https_opener, _RejectRedirect, _post_responses, API_URL,
 )
 from foundation.harness import load_task, AuthoritySnapshot, DEMO_TASK
 
@@ -83,6 +86,70 @@ class GatewayTests(unittest.TestCase):
         for sample in samples:
             with self.subTest(sample=sample), self.assertRaises(ModelGatewayError):
                 extract_proposal(sample, ("app/greeting.py",))
+
+    def test_https_opener_rejects_redirects_and_ambient_proxies(self):
+        with patch.dict(os.environ, {
+            "HTTPS_PROXY": "http://attacker.invalid:8888",
+            "HTTP_PROXY": "http://attacker.invalid:8888",
+        }):
+            opener = _make_https_opener()
+        proxies = [h for h in opener.handlers
+                   if isinstance(h, urllib.request.ProxyHandler)]
+        # Empty ProxyHandler({}) may be optimized out by urllib.build_opener.
+        # The security property is no nonempty/ambient proxy configuration.
+        self.assertFalse(any(handler.proxies for handler in proxies))
+        rejectors = [h for h in opener.handlers if isinstance(h, _RejectRedirect)]
+        self.assertEqual(len(rejectors), 1)
+        req = urllib.request.Request(
+            API_URL, data=b"{}", headers={"Authorization": "Bearer test-secret"},
+            method="POST"
+        )
+        self.assertIsNone(rejectors[0].redirect_request(
+            req, None, 302, "moved", {"Location": "https://attacker.invalid/"},
+            "https://attacker.invalid/"
+        ))
+
+    def test_post_responses_uses_single_fixed_https_request(self):
+        message = wrapped(GOOD)
+        reply = MagicMock()
+        reply.geturl.return_value = API_URL
+        reply.read.return_value = json.dumps(message).encode("utf-8")
+        reply.__enter__.return_value = reply
+        opener = MagicMock()
+        opener.open.return_value = reply
+        with patch("foundation.model_gateway._make_https_opener", return_value=opener):
+            returned = _post_responses({"model": "test-model"}, "SENSITIVE_TEST_TOKEN")
+        self.assertEqual(returned, message)
+        self.assertEqual(opener.open.call_count, 1)
+        req = opener.open.call_args.args[0]
+        self.assertEqual(req.get_method(), "POST")
+        self.assertEqual(req.full_url, API_URL)
+        self.assertEqual(req.get_header("Authorization"), "Bearer SENSITIVE_TEST_TOKEN")
+        self.assertEqual(opener.open.call_args.kwargs["timeout"], 45)
+
+    def test_redirect_http_error_is_redacted_and_not_retried(self):
+        opener = MagicMock()
+        opener.open.side_effect = urllib.error.HTTPError(
+            API_URL, 302, "PRIVATE_TOKEN_MUST_NOT_APPEAR",
+            {"Location": "https://attacker.invalid/"}, None
+        )
+        with patch("foundation.model_gateway._make_https_opener", return_value=opener):
+            with self.assertRaises(ModelGatewayError) as caught:
+                _post_responses({"model": "test-model"}, "PRIVATE_TOKEN_MUST_NOT_APPEAR")
+        self.assertEqual(str(caught.exception), "Provider request failed with HTTP 302")
+        self.assertEqual(opener.open.call_count, 1)
+        self.assertNotIn("PRIVATE_TOKEN_MUST_NOT_APPEAR", str(caught.exception))
+
+    def test_changed_destination_rejected_before_response_acceptance(self):
+        reply = MagicMock()
+        reply.geturl.return_value = "https://attacker.invalid/"
+        reply.__enter__.return_value = reply
+        opener = MagicMock()
+        opener.open.return_value = reply
+        with patch("foundation.model_gateway._make_https_opener", return_value=opener):
+            with self.assertRaises(ModelGatewayError):
+                _post_responses({"model": "test-model"}, "TEST_TOKEN")
+        reply.read.assert_not_called()
 
     def test_missing_network_optin_or_secret_does_not_call_provider(self):
         with tempfile.TemporaryDirectory() as tmp:

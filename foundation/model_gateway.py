@@ -15,6 +15,7 @@ import re
 import tempfile
 import urllib.error
 import urllib.request
+import ssl
 from typing import Callable, Any
 
 from .__main__ import init_project
@@ -85,6 +86,26 @@ def request_payload(task: TaskRequest, authority: AuthoritySnapshot, model: str)
     }
 
 
+class _RejectRedirect(urllib.request.HTTPRedirectHandler):
+    """Never forward an authenticated model request to any redirect URL."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def _make_https_opener() -> urllib.request.OpenerDirector:
+    # Opt-in model networking is deliberately pinned to one HTTPS origin.
+    # Ignore environment-configured proxies and reject redirects, which can
+    # otherwise forward Authorization to a different HTTP(S) destination.
+    if API_URL != "https://api.openai.com/v1/responses":
+        raise ModelGatewayError("Model API destination not permitted")
+    return urllib.request.build_opener(
+        urllib.request.ProxyHandler({}),
+        _RejectRedirect(),
+        urllib.request.HTTPSHandler(context=ssl.create_default_context()),
+    )
+
+
 def _post_responses(payload: dict[str, Any], token: str) -> dict[str, Any]:
     if not token or "\n" in token or "\r" in token:
         raise ModelGatewayError("Missing or invalid API credential")
@@ -95,7 +116,9 @@ def _post_responses(payload: dict[str, Any], token: str) -> dict[str, Any]:
                  "Authorization": "Bearer " + token},
     )
     try:
-        with urllib.request.urlopen(req, timeout=45) as response:
+        with _make_https_opener().open(req, timeout=45) as response:
+            if response.geturl() != API_URL:
+                raise ModelGatewayError("Provider destination mismatch")
             raw = response.read(256 * 1024 + 1)
     except urllib.error.HTTPError as exc:
         # Never leak provider bodies, headers or raw HTTP requests.

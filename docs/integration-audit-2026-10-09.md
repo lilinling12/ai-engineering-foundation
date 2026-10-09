@@ -93,3 +93,17 @@ No gates are closed by this audit alone.
 - Regression tests include a deliberately secret-bearing assertion output and timeout/spawn failures. No raw exception or test output should be persisted in G0 evidence.
 - Scope limitation: G1's independent fixture evaluator and G1.2's trusted fixture Docker smoke have separate output handling; do not assume this change sanitizes their logs or authorizes arbitrary code execution.
 - **Actual state:** As observed on 2026-10-10: PR #1 Ready for review, PR #2–#6 Draft; no independent approval, no active main Ruleset. Issue #7 remains Open. These observations require revalidation each session.
+
+## INT-010 — Inference API credential forwarding risk (2026-10-10)
+
+- **High / code review finding:** PR #5 used the default `urllib.request.urlopen()`
+  redirect handler for a request carrying `Authorization: Bearer …`. HTTP
+  301/302 redirects can carry that header to a new destination; implicit
+  `HTTPS_PROXY`/environment proxy configuration also expanded the trust boundary.
+- **IMPLEMENTATION FIXED in PR #5:** fixed HTTPS API origin, redirect rejection,
+  empty proxy configuration, ordinary TLS certificate validation, and final
+  response URL equality check. Negative tests validate redirect refusal,
+  absence of ambient proxy configuration, redacted HTTP errors, and no retry.
+- **Review requirement:** inspect source and exact-head Python/TS/Docker checks.
+  This does not prove network egress enforcement or production secret brokerage.
+  No real OpenAI API call was made for these tests.

@@ -116,6 +116,11 @@ def main(argv: list[str] | None = None) -> int:
     demo.add_argument("--dest", required=True, type=Path)
     demo.add_argument("--task", type=Path)
     demo.add_argument("--provider", default="fixture-pass", choices=["fixture-pass", "fixture-fail"])
+    propose = subs.add_parser("propose", help="Opt-in live model proposal; no code execution")
+    propose.add_argument("--dest", required=True, type=Path)
+    propose.add_argument("--model", required=True)
+    propose.add_argument("--task", type=Path)
+    propose.add_argument("--permit-network", action="store_true")
     init = subs.add_parser("init")
     init.add_argument("--stack", required=True)
     init.add_argument("--dest", type=Path, required=True)
@@ -130,6 +135,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Initialized {args.stack}: {args.dest}")
         elif args.command == "verify":
             return 0 if verify_project(args.project.resolve()) else 1
+        elif args.command == "propose":
+            from .model_gateway import run_live_proposal
+            return run_live_proposal(args.dest, args.model, args.task, args.permit_network)
         elif args.command == "agent-demo":
             from .harness import run_demo
             return 0 if run_demo(destination=args.dest, task_path=args.task, provider_id=args.provider) else 1

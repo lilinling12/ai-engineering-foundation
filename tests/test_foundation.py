@@ -97,6 +97,30 @@ class FoundationTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 verify_project(out)
 
+    def test_reject_unknown_scaffold_version_without_check_execution(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "bad"
+            init_project("python-service", out)
+            manifest_path = out / ".foundation/project.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            for incompatible in ("999.0.0", None, [], True):
+                with self.subTest(incompatible=incompatible):
+                    manifest["scaffoldVersion"] = incompatible
+                    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+                    with self.assertRaises(ValueError):
+                        verify_project(out)
+
+    def test_reject_untrusted_marker_before_running_checks(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "stage"
+            init_project("python-service", out)
+            (out / ".foundation/UNTRUSTED_DO_NOT_EXECUTE").write_text(
+                "do-not-run", encoding="utf-8"
+            )
+            with self.assertRaises(ValueError):
+                verify_project(out)
+            self.assertFalse((out / ".foundation/evidence.json").exists())
+
     def test_unknown_stack(self):
         with tempfile.TemporaryDirectory() as temp:
             with self.assertRaises(ValueError):

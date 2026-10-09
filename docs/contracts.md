@@ -6,7 +6,7 @@ Each pack has `id`, `ecosystem`, `status` (`runnable` or `contract-only`), `capa
 
 ## Project manifest
 
-The `.foundation/project.json` manifest records `contract`=`foundation.project/v0`, `stack`, and scaffold version. Only IDs registered in the foundation may be verified. Unknown fields and unexpected versions are rejected by runtime validation.
+The `.foundation/project.json` manifest records `contract`=`foundation.project/v0`, `stack`, and scaffold version. Only IDs registered in the foundation may be verified. Unknown fields, unsupported contract versions and unsupported scaffoldVersion values are rejected before any check executes. G0 supports scaffoldVersion `0.1.0` only. A `.foundation/UNTRUSTED_DO_NOT_EXECUTE` marker blocks trusted-local verification but is a misuse-prevention guard, **not** a security sandbox.
 
 ## Verification evidence
 

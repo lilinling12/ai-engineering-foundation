@@ -11,7 +11,7 @@ import re
 _IMAGE = re.compile(r"^[a-z0-9][a-z0-9._/-]*@sha256:[0-9a-f]{64}$")
 _ALLOWED = {
     "python-unit": ("python", "-B", "-m", "unittest", "discover", "-s", "tests", "-v"),
-    "python-eval": ("python", "-B", "-m", "unittest", "discover", "-s", "acceptance", "-v"),
+    "python-eval": ("python", "-B", "-m", "unittest", "discover", "-s", "/acceptance", "-v"),
 }
 
 class SandboxPolicyError(ValueError):
@@ -35,7 +35,13 @@ class SandboxPolicy:
                 16 <= self.pids <= 128 and 1 <= self.timeout_seconds <= 120):
             raise SandboxPolicyError("Resources exceed the reviewed local policy")
 
-def plan_docker_run(workspace: Path, check_id: str, policy: SandboxPolicy) -> tuple[str, ...]:
+def _safe_bind_source(path: Path) -> None:
+    # Docker --mount is comma-delimited; an embedded comma could inject
+    # another mount option. Control bytes also make audit logs ambiguous.
+    if any(char == "," or ord(char) < 32 or ord(char) == 127 for char in str(path)):
+        raise SandboxPolicyError("Unsafe Docker bind source characters")
+
+def plan_docker_run(workspace: Path, check_id: str, policy: SandboxPolicy, *, acceptance_dir: Path | None = None) -> tuple[str, ...]:
     """Return fixed argv for a tightly constrained offline check; execute nothing."""
     policy.validate()
     if check_id not in _ALLOWED:
@@ -45,6 +51,19 @@ def plan_docker_run(workspace: Path, check_id: str, policy: SandboxPolicy) -> tu
     root = workspace.resolve(strict=True)
     if root.is_symlink():
         raise SandboxPolicyError("Unsafe workspace")
+    _safe_bind_source(root)
+    mounts: tuple[str, ...] = ()
+    if check_id == "python-eval":
+        if (acceptance_dir is None or not acceptance_dir.is_absolute() or
+                not acceptance_dir.is_dir() or acceptance_dir.is_symlink()):
+            raise SandboxPolicyError("Trusted acceptance directory required")
+        accepted = acceptance_dir.resolve(strict=True)
+        _safe_bind_source(accepted)
+        if accepted == root or root in accepted.parents or accepted in root.parents:
+            raise SandboxPolicyError("Acceptance must be separate from project")
+        mounts = ("--mount", f"type=bind,src={accepted},dst=/acceptance,readonly")
+    elif acceptance_dir is not None:
+        raise SandboxPolicyError("Unexpected acceptance mount")
     # Caller must create a dedicated, non-sensitive workspace. No docker.sock,
     # home directory, credentials or host network access are mounted.
     return (
@@ -54,7 +73,9 @@ def plan_docker_run(workspace: Path, check_id: str, policy: SandboxPolicy) -> tu
         "--user=65534:65534", "--pids-limit", str(policy.pids),
         "--memory", f"{policy.memory_mb}m", "--cpus", str(policy.cpus),
         "--tmpfs", "/tmp:rw,noexec,nosuid,size=32m",
+        "--env=PYTHONDONTWRITEBYTECODE=1", "--env=PYTHONPATH=/workspace", "--env=HOME=/tmp",
         "--mount", f"type=bind,src={root},dst=/workspace,readonly",
+        *mounts,
         "--workdir", "/workspace", policy.image_digest, *_ALLOWED[check_id],
     )
 

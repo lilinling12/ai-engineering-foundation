@@ -44,6 +44,25 @@ class SandboxTests(unittest.TestCase):
         with self.assertRaises(SandboxPolicyError):
             plan_docker_run(Path("."), "python-unit", SandboxPolicy(DIGEST))
 
+    def test_mount_delimiter_and_control_bytes_denied(self):
+        with tempfile.TemporaryDirectory() as base:
+            root = Path(base)
+            malicious = root / "work,dst=/sensitive"
+            malicious.mkdir(parents=True)
+            with self.assertRaises(SandboxPolicyError):
+                plan_docker_run(malicious, "python-unit", SandboxPolicy(DIGEST))
+            accepted = root / "accept,bind-create-src"
+            accepted.mkdir()
+            safe = root / "work"
+            safe.mkdir()
+            with self.assertRaises(SandboxPolicyError):
+                plan_docker_run(safe, "python-eval", SandboxPolicy(DIGEST),
+                                acceptance_dir=accepted)
+            newline = root / "work\nunsafe"
+            newline.mkdir()
+            with self.assertRaises(SandboxPolicyError):
+                plan_docker_run(newline, "python-unit", SandboxPolicy(DIGEST))
+
     def test_catalog_does_not_include_shell(self):
         self.assertEqual(command_catalog(), ("python-eval", "python-unit"))
 

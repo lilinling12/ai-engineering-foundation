@@ -2,7 +2,7 @@
 
 - Stack pack catalog is **metadata only**; command strings must not be loaded from user project manifests.
 - CLI check commands currently reside in trusted foundation source code, with no shell interpolation.
-- Local verification executes tests from the selected project; therefore use only **trusted local projects**. This G0 CLI is NOT a secure sandbox for malicious repos.
+- Local verification executes tests from the selected project; the CLI requires explicit `--trust-project-code` acknowledgment. This prevents accidental execution but is NOT authorization, verification of source trust, sandboxing, or multi-tenant isolation. Direct `verify_project()` is trusted-integrator-only; use only **trusted local projects**. This G0 CLI is NOT a secure sandbox for malicious repos.
 - G1 offline demo accepts **only built-in fixtures**. It rejects arbitrary provider names, task paths, unknown acceptance checks and unauthorized file changes. Its temporary workspace is merely filesystem separation, NOT a security sandbox.
 - Reading authority files does not elevate them to executable instructions. Real LLM providers and arbitrary patches remain disabled.
 - Destination must not pre-exist; symbolic links, writable checkout boundaries and TOCTOU need further hardening before service deployment.

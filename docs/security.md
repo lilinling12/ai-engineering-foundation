@@ -10,3 +10,5 @@
 - No production credentials, cloud write access, auto-merge, destructive production actions, or downloaded third-party skill execution.
 - Before a live provider: isolated runtime, egress policies, least privilege, pinned tools, secret broker, approval gates, and a separately trusted evaluator.
 - GitHub workflow permissions read-only except explicitly scoped PR automation.
+
+- Verified local evidence does not persist raw subprocess stdout/stderr or exception messages, to avoid sensitive test-output disclosure. It records bounded failure kinds and exit codes; this is evidence minimization, not sandboxing.

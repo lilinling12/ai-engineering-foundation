@@ -40,7 +40,7 @@ class ExecutorContractTests(unittest.TestCase):
 
     def test_success_and_always_cleanup(self):
         workspace = FIXTURES / "policy"
-        if True:
+        with self.subTest(case="normal-success"):
             proc = MagicMock()
             proc.returncode = 0
             proc.communicate.return_value = ("ok", "")
@@ -57,7 +57,7 @@ class ExecutorContractTests(unittest.TestCase):
             self.assertEqual(cleanup.call_args.args[0][:3], ["docker", "rm", "-f"])
 
     def test_timeout_kills_client_and_container(self):
-        if True:
+        with self.subTest(case="timeout"):
             proc = MagicMock()
             proc.communicate.side_effect = [subprocess.TimeoutExpired("docker", 3), ("", "")]
             with patch.dict(os.environ, HOSTED, clear=True), \
@@ -76,7 +76,7 @@ class ExecutorContractTests(unittest.TestCase):
             with patch.dict(os.environ, HOSTED, clear=True), \
                  patch("foundation.docker_executor.shutil.which", return_value="/usr/bin/docker"), \
                  patch("foundation.docker_executor.subprocess.Popen") as spawn:
-                with self.assertRaises(SandboxPolicyError):
+                with self.assertRaises(ExecutionDenied):
                     run_fixture_check(FIXTURES / "policy", "arbitrary-shell", SandboxPolicy(PIN))
                 spawn.assert_not_called()
 

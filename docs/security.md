@@ -1,13 +1,14 @@
-# Trust and safety boundaries v0.1
+# Trust and safety boundaries v0.2
 
 - Stack pack catalog is **metadata only**; command strings must not be loaded from user project manifests.
-- CLI check commands currently reside in trusted foundation source code, with no `shell=True`.
-- Local verification executes tests from the selected project; the CLI requires explicit `--trust-project-code` before invoking any check. This is only a consent/intent guard, not trust enforcement, isolation or sandboxing. Direct use of `verify_project()` remains trusted-integrator-only. Therefore use only **trusted local projects**. This G0 CLI is NOT a secure sandbox for malicious repos.
-- The destination must not pre-exist, preventing silent overwrites. Symlinks, writable checkout boundaries, and TOCTOU require hardening before multi-user service deployment.
-- Local evidence is self-reported, editable and **not independent attestation**.
-- No production credentials, cloud write access, auto-merge, unattended destructive operations, or downloaded third-party skill execution.
-- Before remote Agent execution: isolated workspaces, egress restrictions, least-privilege credentials, approval gates, pinned tools, artifact provenance, and independent verification.
-- GitHub workflow permissions should be read-only except narrowly scoped PR automation.
+- CLI check commands currently reside in trusted foundation source code, with no shell interpolation.
+- Local verification executes tests from the selected project; the CLI requires explicit `--trust-project-code` acknowledgment. This prevents accidental execution but is NOT authorization, verification of source trust, sandboxing, or multi-tenant isolation. Direct `verify_project()` is trusted-integrator-only; use only **trusted local projects**. This G0 CLI is NOT a secure sandbox for malicious repos.
+- G1 offline demo accepts **only built-in fixtures**. It rejects arbitrary provider names, task paths, unknown acceptance checks and unauthorized file changes. Its temporary workspace is merely filesystem separation, NOT a security sandbox.
+- Reading authority files does not elevate them to executable instructions. Real LLM providers and arbitrary patches remain disabled.
+- Destination must not pre-exist; symbolic links, writable checkout boundaries and TOCTOU need further hardening before service deployment.
+- Evidence in \`.foundation/*.json\` is local, editable, and **not independent CI attestation**.
+- No production credentials, cloud write access, auto-merge, destructive production actions, or downloaded third-party skill execution.
+- Before a live provider: isolated runtime, egress policies, least privilege, pinned tools, secret broker, approval gates, and a separately trusted evaluator.
+- GitHub workflow permissions read-only except explicitly scoped PR automation.
 
-
-- Verification evidence **never persists subprocess stdout/stderr or raw exception strings**. It records exit codes and fixed failure-kind labels only, because test logs may include credentials and protected data. This is evidence minimization, not a guarantee that already-available runner logs or other tools cannot leak data.
+- Verified local evidence does not persist raw subprocess stdout/stderr or exception messages, to avoid sensitive test-output disclosure. It records bounded failure kinds and exit codes; this is evidence minimization, not sandboxing.

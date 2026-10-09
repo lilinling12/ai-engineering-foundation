@@ -1,0 +1,10 @@
+{
+  "contract": "foundation.task/v0",
+  "id": "python-greeting-v0",
+  "stack": "python-service",
+  "objective": "Add a pure function greet(name: str) that returns 'Hello, ' followed by name.",
+  "allowedPaths": [
+    "app/greeting.py"
+  ],
+  "acceptanceId": "python-greeting/v0"
+}

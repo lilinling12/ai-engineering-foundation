@@ -125,6 +125,10 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="foundation")
     subs = parser.add_subparsers(dest="command", required=True)
     subs.add_parser("catalog")
+    demo = subs.add_parser("agent-demo", help="Offline trusted-fixture Agent Harness demonstration")
+    demo.add_argument("--dest", required=True, type=Path)
+    demo.add_argument("--task", type=Path)
+    demo.add_argument("--provider", default="fixture-pass", choices=["fixture-pass", "fixture-fail"])
     init = subs.add_parser("init")
     init.add_argument("--stack", required=True)
     init.add_argument("--dest", type=Path, required=True)
@@ -143,6 +147,9 @@ def main(argv: list[str] | None = None) -> int:
             if not args.trust_project_code:
                 raise ValueError("Local project checks execute code. Pass --trust-project-code only for trusted local projects; this is NOT a sandbox")
             return 0 if verify_project(args.project.resolve()) else 1
+        elif args.command == "agent-demo":
+            from .harness import run_demo
+            return 0 if run_demo(destination=args.dest, task_path=args.task, provider_id=args.provider) else 1
     except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
         print(f"foundation: {exc}", file=sys.stderr)
         return 2

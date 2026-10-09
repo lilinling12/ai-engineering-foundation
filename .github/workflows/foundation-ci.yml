@@ -1,0 +1,36 @@
+name: Foundation CI
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  python-platform-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Foundation CLI and golden path
+        run: python -m unittest discover -s tests -v
+  typescript-golden-path:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install TypeScript seed
+        working-directory: templates/typescript-api
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Strict TypeScript
+        working-directory: templates/typescript-api
+        run: npm run typecheck
+      - name: Node test
+        working-directory: templates/typescript-api
+        run: npm test
+      - name: Build
+        working-directory: templates/typescript-api
+        run: npm run build
+

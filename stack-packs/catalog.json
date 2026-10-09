@@ -1,0 +1,53 @@
+{
+  "contract": "foundation.stack-packs/v0",
+  "packs": [
+    {
+      "id": "python-service",
+      "ecosystem": "python",
+      "status": "runnable",
+      "toolchain": "Python 3.12+",
+      "capabilities": [
+        "scaffold",
+        "unit-test",
+        "evidence"
+      ],
+      "description": "Dependency-free Python baseline to validate the full CLI loop"
+    },
+    {
+      "id": "typescript-api",
+      "ecosystem": "typescript",
+      "status": "runnable",
+      "toolchain": "Node.js 24 LTS + npm",
+      "capabilities": [
+        "scaffold",
+        "typecheck",
+        "unit-test",
+        "build",
+        "evidence"
+      ],
+      "description": "Strict TypeScript module baseline with compile and node:test"
+    },
+    {
+      "id": "java-spring",
+      "ecosystem": "java",
+      "status": "contract-only",
+      "toolchain": "Java 25 + Spring Boot 4",
+      "capabilities": [
+        "planned:scaffold",
+        "planned:integration-test"
+      ],
+      "description": "Requires dedicated Spring Modulith validation slice"
+    },
+    {
+      "id": "wechat-native",
+      "ecosystem": "wechat",
+      "status": "contract-only",
+      "toolchain": "WeChat DevTools + TypeScript",
+      "capabilities": [
+        "planned:scaffold",
+        "planned:runtime-test"
+      ],
+      "description": "Must not claim device/runtime verification based on Node tests"
+    }
+  ]
+}

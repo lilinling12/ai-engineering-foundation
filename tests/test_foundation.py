@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from foundation.__main__ import catalog, init_project, verify_project
+from foundation.__main__ import catalog, init_project, verify_project, main
 
 class FoundationTests(unittest.TestCase):
     def test_catalog_four_packs_two_runnable(self):
@@ -61,6 +61,7 @@ class FoundationTests(unittest.TestCase):
                 encoding="utf-8"
             )
             self.assertFalse(verify_project(out))
+            self.assertEqual(main(["verify", "--project", str(out)]), 1)
             evidence = json.loads((out / ".foundation/evidence.json").read_text(encoding="utf-8"))
             self.assertEqual(evidence["result"], "fail")
             self.assertEqual(evidence["checks"][0]["id"], "unit-test")
@@ -76,7 +77,10 @@ class FoundationTests(unittest.TestCase):
             original.mkdir()
             (original / "important").write_text("keep", encoding="utf-8")
             linked = root / "symlink"
-            linked.symlink_to(original, target_is_directory=True)
+            try:
+                linked.symlink_to(original, target_is_directory=True)
+            except (OSError, NotImplementedError):
+                self.skipTest("Creating symlinks requires OS privileges")
             with self.assertRaises(FileExistsError):
                 init_project("python-service", linked)
             self.assertEqual((original / "important").read_text(encoding="utf-8"), "keep")

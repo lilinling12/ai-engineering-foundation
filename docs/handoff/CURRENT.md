@@ -3,30 +3,31 @@
 - Date: 2026-10-09
 - Product target: **MVP-2 Multi-Stack Engineering Platform**
 - G0 PR #1: Draft, NOT CLOSED
-- G1 PR #2: Draft, offline fixture Harness, NOT CLOSED
-- G1.1 PR #3: Draft, provider/sandbox policy, NOT CLOSED
-- G1.2 PR #4: Draft, real Docker fixture checks, CI green, NOT CLOSED
-- G1.3 PR #5: Draft, proposal-only Responses model gateway, NOT CLOSED
-- Working branch: \`feat/g13-model-proposal-gateway\` stacked on \`feat/g12-offline-docker-executor\`
-- Refresh live GitHub refs, PRs, reviews and exact-head checks before further work.
+- G1 PR #2: Draft, fixture-only Harness, NOT CLOSED
+- G1.1 PR #3: Draft, sandbox policy, NOT CLOSED
+- G1.2 PR #4: Draft, CI Docker checks of trusted fixtures, NOT CLOSED
+- G1.3 PR #5: Draft, model proposal quarantine (optional real API), NOT CLOSED
+- G1.4 PR #6: Draft, local digest review + static staging, NOT CLOSED
+- Work branch: `feat/g14-review-static-acceptance` stacked on `feat/g13-model-proposal-gateway`
+- Re-check live GitHub refs, reviews and exact-head CI on each session.
 
-## Authority (read only what's relevant)
+## Read only relevant current authority
 - docs/platform.md
 - docs/mvp2-plan.md
 - docs/security.md
 - docs/contracts.md
-- docs/g1-agent-harness.md
-- docs/g11-execution-boundary.md
 - docs/g12-runtime.md
 - docs/g13-model-proposal.md
+- docs/g14-review-static-acceptance.md
 
-## Current work
-- Independently review G0–G1.3 exact-head tests and security limitations.
-- Validate G1.3 schema and negative tests with no paid live inference.
-- Plan guarded patch approval + separate sandbox evaluation; do not execute unknown model code in existing G1.2 trusted-fixture runner.
-- Do not merge stacked PRs without acceptance.
+## Active work / blockers
+- Review stacked PRs #1–#6 and verify G1.4 exact-head CI.
+- Do not merge until explicit gate review and integration acceptance.
+- Implement authenticated approvals and strong isolated execution before
+  running arbitrary model-generated source or extending beyond greeting fixture.
+- Determine how to reduce stacked PR depth by reviewing and merging sequentially.
 
-## Explicitly NOT complete
-- No verified real provider API call in CI and no Codex CLI/Claude Code runner.
-- No AI-generated code executed, sandboxed or accepted as correct.
-- No externally attested proof, production authorization, pilot project adoption or closed gates.
+## Not achieved
+- No verified paid model call in CI, no Codex CLI/Claude Code Agent runtime.
+- No execution of AI-authored code, no proven multi-tenant sandbox.
+- No signed approval, external attestation, real pilot adoption or closed Gate.

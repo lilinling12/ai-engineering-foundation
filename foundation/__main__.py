@@ -74,6 +74,8 @@ def git_head(project: Path) -> str | None:
         return None
 
 def verify_project(project: Path) -> bool:
+    if (project / ".foundation" / "UNTRUSTED_DO_NOT_EXECUTE").exists():
+        raise ValueError("Model-staged source is untrusted; generic verification is disabled")
     manifest = project / ".foundation" / "project.json"
     obj = json.loads(manifest.read_text(encoding="utf-8"))
     if set(obj) != {"contract", "stack", "scaffoldVersion"} or obj["contract"] != CONTRACT:
@@ -121,6 +123,15 @@ def main(argv: list[str] | None = None) -> int:
     propose.add_argument("--model", required=True)
     propose.add_argument("--task", type=Path)
     propose.add_argument("--permit-network", action="store_true")
+    review = subs.add_parser("review", help="Record explicit local SHA confirmation; NOT authenticated approval")
+    review.add_argument("--quarantine", required=True, type=Path)
+    review.add_argument("--confirm-sha", required=True)
+    review.add_argument("--decision", choices=["approve", "reject"], required=True)
+    review.add_argument("--dest", required=True, type=Path)
+    stage = subs.add_parser("stage", help="Static-check and stage approved source; NEVER execute it")
+    stage.add_argument("--quarantine", required=True, type=Path)
+    stage.add_argument("--approval", required=True, type=Path)
+    stage.add_argument("--dest", required=True, type=Path)
     init = subs.add_parser("init")
     init.add_argument("--stack", required=True)
     init.add_argument("--dest", type=Path, required=True)
@@ -138,6 +149,14 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "propose":
             from .model_gateway import run_live_proposal
             return run_live_proposal(args.dest, args.model, args.task, args.permit_network)
+        elif args.command == "review":
+            from .review_gate import record_decision
+            record_decision(args.quarantine, args.confirm_sha, args.decision, args.dest)
+            return 0
+        elif args.command == "stage":
+            from .review_gate import stage_reviewed_proposal
+            stage_reviewed_proposal(args.quarantine, args.approval, args.dest)
+            return 0
         elif args.command == "agent-demo":
             from .harness import run_demo
             return 0 if run_demo(destination=args.dest, task_path=args.task, provider_id=args.provider) else 1

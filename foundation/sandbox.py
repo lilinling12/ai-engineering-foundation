@@ -50,7 +50,7 @@ def plan_docker_run(workspace: Path, check_id: str, policy: SandboxPolicy) -> tu
     return (
         "docker", "run", "--rm", "--pull=never",
         "--network=none", "--read-only", "--cap-drop=ALL",
-        "--security-opt=no-new-privileges", "--security-opt=seccomp=builtin",
+        "--security-opt=no-new-privileges",
         "--user=65534:65534", "--pids-limit", str(policy.pids),
         "--memory", f"{policy.memory_mb}m", "--cpus", str(policy.cpus),
         "--tmpfs", "/tmp:rw,noexec,nosuid,size=32m",

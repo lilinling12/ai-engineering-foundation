@@ -1,11 +1,12 @@
-# Trust and safety boundaries v0.1
+# Trust and safety boundaries v0.2
 
 - Stack pack catalog is **metadata only**; command strings must not be loaded from user project manifests.
-- CLI check commands currently reside in trusted foundation source code, with no `shell=True`.
+- CLI check commands currently reside in trusted foundation source code, with no shell interpolation.
 - Local verification executes tests from the selected project; therefore use only **trusted local projects**. This G0 CLI is NOT a secure sandbox for malicious repos.
-- The destination must not pre-exist, preventing silent overwrites. Symlinks, writable checkout boundaries, and TOCTOU require hardening before multi-user service deployment.
-- Local evidence is self-reported, editable and **not independent attestation**.
-- No production credentials, cloud write access, auto-merge, unattended destructive operations, or downloaded third-party skill execution.
-- Before remote Agent execution: isolated workspaces, egress restrictions, least-privilege credentials, approval gates, pinned tools, artifact provenance, and independent verification.
-- GitHub workflow permissions should be read-only except narrowly scoped PR automation.
-
+- G1 offline demo accepts **only built-in fixtures**. It rejects arbitrary provider names, task paths, unknown acceptance checks and unauthorized file changes. Its temporary workspace is merely filesystem separation, NOT a security sandbox.
+- Reading authority files does not elevate them to executable instructions. Real LLM providers and arbitrary patches remain disabled.
+- Destination must not pre-exist; symbolic links, writable checkout boundaries and TOCTOU need further hardening before service deployment.
+- Evidence in \`.foundation/*.json\` is local, editable, and **not independent CI attestation**.
+- No production credentials, cloud write access, auto-merge, destructive production actions, or downloaded third-party skill execution.
+- Before a live provider: isolated runtime, egress policies, least privilege, pinned tools, secret broker, approval gates, and a separately trusted evaluator.
+- GitHub workflow permissions read-only except explicitly scoped PR automation.

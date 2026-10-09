@@ -2,24 +2,26 @@
 
 - Date: 2026-10-09
 - Product target: **MVP-2 Multi-Stack Engineering Platform**
-- Active slice: **G0 / Thin Vertical Slice** (not a separate MVP product)
-- Status: **PROPOSED / NOT CLOSED**
-- Work branch: `feat/mvp2-platform-vertical-slice`
-- Main baseline at planning: `838c875f0e6912612fee6f5aaa0a723549d47857`; refresh against live GitHub on every session
+- Base Gate: **G0 / Thin Vertical Slice** on PR #1 — checks passing, Draft, **NOT CLOSED**
+- Stacked preview: **G1 / Agent Harness Contract & Offline Golden Path** on PR #2 — **NOT CLOSED**
+- Work branch: \`feat/g1-agent-harness-protocol\`, base \`feat/mvp2-platform-vertical-slice\`
+- Main SHA at initial handoff: \`838c875f0e6912612fee6f5aaa0a723549d47857\`; refresh live GitHub state
 
 ## Read
 - docs/platform.md
 - docs/mvp2-plan.md
-- docs/security.md
 - docs/contracts.md
+- docs/security.md
+- docs/g1-agent-harness.md
 
-## Current task
-Prove project init -> pack selection -> trusted local verification -> evidence, for at least Python and TypeScript, with CI. Review architecture, accept/reject before wider implementation.
+## Current work
+1. Resolve G0 peer review, dependency lockfile and trusted-local boundaries.
+2. Independently review G1 policy/acceptance and check its exact-head CI.
+3. Plan actual sandbox boundary and AI provider adapter; do not execute untrusted generated code until implemented.
 
-## Unfinished
-- Model provider adapters, real task orchestration, isolated execution and independent evaluator
-- Java / WeChat runnable templates and runtime acceptance checks
-- Adoption by any of the four pilot products
-- Pack publisher trust/signing, remote execution and credentials
-- Production and enterprise readiness
-
+## Explicitly not achieved
+- No live coding LLM in this G1 preview. Only deterministic built-in fixture providers.
+- No secure sandbox; temporary workspace isolation is NOT threat isolation.
+- No adoption of pilot application repositories.
+- No production or external repository access.
+- No G0 or G1 closure or merge authorization.

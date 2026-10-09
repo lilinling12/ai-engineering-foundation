@@ -51,10 +51,13 @@ class FoundationTests(unittest.TestCase):
             out = Path(temp) / "broken"
             init_project("python-service", out)
             (out / "tests/test_core.py").write_text(
-                "import unittest\\n"
-                "class Broken(unittest.TestCase):\\n"
-                "    def test_failure(self):\\n"
-                "        self.assertEqual(1, 2)\\n",
+                chr(10).join([
+                    "import unittest",
+                    "class Broken(unittest.TestCase):",
+                    "    def test_failure(self):",
+                    "        self.assertEqual(1, 2)",
+                    "",
+                ]),
                 encoding="utf-8"
             )
             self.assertFalse(verify_project(out))
@@ -63,6 +66,7 @@ class FoundationTests(unittest.TestCase):
             self.assertEqual(evidence["checks"][0]["id"], "unit-test")
             self.assertEqual(evidence["checks"][0]["result"], "fail")
             self.assertNotEqual(evidence["checks"][0]["exitCode"], 0)
+            self.assertIn("AssertionError", evidence["checks"][0]["outputTail"])
             self.assertEqual(evidence["trustLevel"], "local-unattested")
 
     def test_reject_symlinked_output_without_touching_target(self):

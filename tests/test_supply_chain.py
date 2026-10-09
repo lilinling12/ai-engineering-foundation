@@ -23,13 +23,13 @@ class SupplyChainTests(unittest.TestCase):
             with self.subTest(name=name):
                 self.assertRegex(meta["integrity"], r"^sha512-[A-Za-z0-9+/]+={0,2}$")
                 self.assertTrue(meta["resolved"].startswith("https://registry.npmjs.org/"))
-                self.assertRegex(meta["version"], r"^\d+\\.\\d+\\.\\d+$")
+                self.assertRegex(meta["version"], r"^\d+\.\d+\.\d+$")
         for name, version in package["devDependencies"].items():
             self.assertEqual(installed[name]["version"], version)
 
     def test_actions_are_sha_pinned_and_install_is_frozen(self):
         content = WORKFLOW.read_text(encoding="utf-8")
-        refs = re.findall(r"^\s*- uses: ([^\\s]+)$", content, flags=re.MULTILINE)
+        refs = re.findall(r"^\s*- uses: ([^\s]+)$", content, flags=re.MULTILINE)
         self.assertGreaterEqual(len(refs), 3)
         for ref in refs:
             with self.subTest(ref=ref):

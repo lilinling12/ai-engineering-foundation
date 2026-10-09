@@ -74,9 +74,14 @@ def git_head(project: Path) -> str | None:
         return None
 
 def verify_project(project: Path) -> bool:
+    untrusted_marker = project / ".foundation" / "UNTRUSTED_DO_NOT_EXECUTE"
+    if untrusted_marker.exists() or untrusted_marker.is_symlink():
+        raise ValueError("Untrusted staged source must not run in trusted-local verifier")
     manifest = project / ".foundation" / "project.json"
     obj = json.loads(manifest.read_text(encoding="utf-8"))
-    if set(obj) != {"contract", "stack", "scaffoldVersion"} or obj["contract"] != CONTRACT:
+    if (not isinstance(obj, dict) or
+            set(obj) != {"contract", "stack", "scaffoldVersion"} or
+            obj["contract"] != CONTRACT or obj["scaffoldVersion"] != "0.1.0"):
         raise ValueError("Invalid project manifest contract")
     pack = obj["stack"]
     if pack not in CHECKS or catalog()[pack]["status"] != "runnable":

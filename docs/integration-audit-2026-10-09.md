@@ -73,3 +73,10 @@ No gates are closed by this audit alone.
 - PR #1 was moved from Draft to **Ready for review** after automated checks; this is a request for human review, **not G0 acceptance**.
 - `main` API reported `protected=false`, active Rulesets API returned `[]`, and Branch Protection GET was inaccessible to this integration (403). Documenting a merge policy cannot enforce it.
 - No independently approved review is known. Human reviewer and repo administrator are needed to activate/enforce the merge gate.
+
+## G0 verifier guard review (2026-10-09)
+
+- PR #1 added preflight refusal of untrusted staged marker (including broken symlink) and unsupported scaffoldVersion, before invoking project tests.
+- Regression tests cover unsupported versions and marker blocking. The local verifier is still NOT a sandbox; marker presence is a soft misuse-prevention convention, not tamper-proof authority.
+- The change is propagated through PR #2–#6 with preserved Git ancestry, not by overwriting each PR's extended CLI.
+- Issue #7 remains open; no independent review or enforced main Ruleset observed.

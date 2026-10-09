@@ -35,6 +35,12 @@ class SandboxPolicy:
                 16 <= self.pids <= 128 and 1 <= self.timeout_seconds <= 120):
             raise SandboxPolicyError("Resources exceed the reviewed local policy")
 
+def _safe_bind_source(path: Path) -> None:
+    # Docker --mount is comma-delimited; an embedded comma could inject
+    # another mount option. Control bytes also make audit logs ambiguous.
+    if any(char == "," or ord(char) < 32 or ord(char) == 127 for char in str(path)):
+        raise SandboxPolicyError("Unsafe Docker bind source characters")
+
 def plan_docker_run(workspace: Path, check_id: str, policy: SandboxPolicy, *, acceptance_dir: Path | None = None) -> tuple[str, ...]:
     """Return fixed argv for a tightly constrained offline check; execute nothing."""
     policy.validate()
@@ -45,12 +51,14 @@ def plan_docker_run(workspace: Path, check_id: str, policy: SandboxPolicy, *, ac
     root = workspace.resolve(strict=True)
     if root.is_symlink():
         raise SandboxPolicyError("Unsafe workspace")
+    _safe_bind_source(root)
     mounts: tuple[str, ...] = ()
     if check_id == "python-eval":
         if (acceptance_dir is None or not acceptance_dir.is_absolute() or
                 not acceptance_dir.is_dir() or acceptance_dir.is_symlink()):
             raise SandboxPolicyError("Trusted acceptance directory required")
         accepted = acceptance_dir.resolve(strict=True)
+        _safe_bind_source(accepted)
         if accepted == root or root in accepted.parents or accepted in root.parents:
             raise SandboxPolicyError("Acceptance must be separate from project")
         mounts = ("--mount", f"type=bind,src={accepted},dst=/acceptance,readonly")

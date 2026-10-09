@@ -2,32 +2,27 @@
 
 - Date: 2026-10-09
 - Product target: **MVP-2 Multi-Stack Engineering Platform**
-- G0 PR #1: Draft, NOT CLOSED
-- G1 PR #2: Draft, fixture-only Harness, NOT CLOSED
-- G1.1 PR #3: Draft, sandbox policy, NOT CLOSED
-- G1.2 PR #4: Draft, CI Docker checks of trusted fixtures, NOT CLOSED
-- G1.3 PR #5: Draft, model proposal quarantine (optional real API), NOT CLOSED
-- G1.4 PR #6: Draft, local digest review + static staging, NOT CLOSED
-- Work branch: `feat/g14-review-static-acceptance` stacked on `feat/g13-model-proposal-gateway`
-- Re-check live GitHub refs, reviews and exact-head CI on each session.
+- Focus: **integration audit and remediation, not new features**
+- All PRs #1–#6 are stacked Draft PRs, **NOT MERGED**, G0–G1.4 **NOT CLOSED**.
+- PR #4 corrected fixture allowlisting, Docker cleanup verification and mount argument filtering; exact-head checks green before propagation.
+- G1.2 fixes synchronized to PR #5 and #6 via merge commits.
+- Working branch: `feat/g14-review-static-acceptance` (PR #6).
+- Refresh main, PR heads, checks and review decisions from GitHub each session.
 
-## Read only relevant current authority
-- docs/platform.md
-- docs/mvp2-plan.md
-- docs/security.md
-- docs/contracts.md
-- docs/g12-runtime.md
-- docs/g13-model-proposal.md
-- docs/g14-review-static-acceptance.md
+## Read next
+1. `docs/integration-audit-2026-10-09.md` — authoritative open risk register and merge gates
+2. `docs/mvp2-plan.md`
+3. `docs/security.md`
+4. Only the active issue's relevant component documentation
 
-## Active work / blockers
-- Review stacked PRs #1–#6 and verify G1.4 exact-head CI.
-- Do not merge until explicit gate review and integration acceptance.
-- Implement authenticated approvals and strong isolated execution before
-  running arbitrary model-generated source or extending beyond greeting fixture.
-- Determine how to reduce stacked PR depth by reviewing and merging sequentially.
+## Active task (do not skip)
+- Verify PR #5/#6 propagated merge commits and exact-head checks.
+- Fix G0 reproducible TypeScript dependency lock and CI action pinning.
+- Arrange actual independent review; do NOT self-approve or auto-merge.
+- Resolve G0 acceptance before closing G1+.
+- Never execute AI-generated code in the current fixture-only Docker runtime.
 
-## Not achieved
-- No verified paid model call in CI, no Codex CLI/Claude Code Agent runtime.
-- No execution of AI-authored code, no proven multi-tenant sandbox.
-- No signed approval, external attestation, real pilot adoption or closed Gate.
+## Not done
+No gate accepted or merged; no authenticated production approval, no
+independent untrusted-code sandbox assurance, no real Codex CLI/Claude Code
+integration or signed provenance, no pilot-product adoption.

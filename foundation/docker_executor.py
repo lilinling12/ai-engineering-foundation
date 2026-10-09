@@ -15,6 +15,29 @@ import uuid
 
 from .sandbox import SandboxPolicy, SandboxPolicyError, plan_docker_run
 
+# The G1.2 Docker capability is limited to reviewed in-repository fixtures.
+# Environment variable checks are NOT authentication of the host.
+FIXTURES = Path(__file__).resolve().parent.parent / "tests" / "fixtures" / "offline-sandbox"
+TRUSTED_FIXTURE_NAMES = {
+    "python-eval": frozenset({"project-good", "project-bad"}),
+    "python-unit": frozenset({"policy", "hang"}),
+}
+
+def _verify_fixture_identity(workspace: Path, check_id: str, acceptance_dir: Path | None) -> None:
+    if check_id not in TRUSTED_FIXTURE_NAMES:
+        raise ExecutionDenied("No reviewed fixture for this check")
+    if workspace.is_symlink() or not workspace.is_dir() or not workspace.is_absolute():
+        raise ExecutionDenied("Workspace must be a reviewed repository fixture")
+    reviewed = { (FIXTURES / name).resolve() for name in TRUSTED_FIXTURE_NAMES[check_id] }
+    if workspace.resolve() not in reviewed:
+        raise ExecutionDenied("Arbitrary workspace execution is prohibited in G1.2")
+    if check_id == "python-eval":
+        if (acceptance_dir is None or acceptance_dir.is_symlink()
+                or acceptance_dir.resolve() != (FIXTURES / "acceptance").resolve()):
+            raise ExecutionDenied("Acceptance oracle must be repository-owned and separate")
+    elif acceptance_dir is not None:
+        raise ExecutionDenied("Unexpected acceptance oracle")
+
 class ExecutionDenied(PermissionError):
     pass
 
@@ -46,6 +69,7 @@ def run_fixture_check(
     The Docker daemon itself is an elevated trust boundary.
     """
     require_disposable_host()
+    _verify_fixture_identity(workspace, check_id, acceptance_dir)
     command = list(plan_docker_run(workspace, check_id, policy, acceptance_dir=acceptance_dir))
     name = "foundation-g12-" + uuid.uuid4().hex[:20]
     command[2:2] = ["--name", name]
@@ -72,10 +96,23 @@ def run_fixture_check(
         # Killing docker CLI alone does NOT guarantee container termination.
         # Always attempt daemon-side removal, including successful --rm cases.
         try:
-            subprocess.run(
+            cleanup = subprocess.run(
                 ["docker", "rm", "-f", name], timeout=15,
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False
+                capture_output=True, text=True, check=False
             )
+            if cleanup.returncode != 0:
+                # A normally completed --rm container already disappeared;
+                # that is distinguishable from a still-running container or
+                # an unavailable Docker daemon only with a follow-up inspect.
+                inspect = subprocess.run(
+                    ["docker", "container", "inspect", name], timeout=15,
+                    capture_output=True, text=True, check=False
+                )
+                missing = ("No such object" in inspect.stderr or
+                           "No such container" in inspect.stderr)
+                if inspect.returncode == 0 or not missing:
+                    status = "runner-error"
+                    output += "\nContainer removal failed or absence not verified"
         except (OSError, subprocess.SubprocessError):
             # Cleanup failure requires a failed result: never assert isolation.
             status = "runner-error"

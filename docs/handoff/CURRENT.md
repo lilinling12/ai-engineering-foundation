@@ -1,32 +1,32 @@
-# Current authority
+# CURRENT — G1.3 Model Proposal Gateway
+Last checked: 2026-10-10. This is a checkpoint, not live GitHub state.
 
-- Date: 2026-10-09
-- Product target: **MVP-2 Multi-Stack Engineering Platform**
-- G0 PR #1: Draft, NOT CLOSED
-- G1 PR #2: Draft, offline fixture Harness, NOT CLOSED
-- G1.1 PR #3: Draft, provider/sandbox policy, NOT CLOSED
-- G1.2 PR #4: Draft, real Docker fixture checks, CI green, NOT CLOSED
-- G1.3 PR #5: Draft, proposal-only Responses model gateway, NOT CLOSED
-- Working branch: \`feat/g13-model-proposal-gateway\` stacked on \`feat/g12-offline-docker-executor\`
-- Refresh live GitHub refs, PRs, reviews and exact-head checks before further work.
+- Product destination: MVP-2 Multi-Stack Engineering Platform.
+- Branch: `feat/g13-model-proposal-gateway` (PR #5, stacked on PR #4).
+- G0 PR #1 was Ready for review; PR #2–#6 were otherwise Draft/open.
+- G0–G1.4 gates NOT CLOSED. No PR merged at last observation.
+- Issue #7: active main Ruleset and independent PR #1 review absent at last check.
+- Always verify main/head/base, reviews and exact-head CI from GitHub on resume.
 
-## Authority (read only what's relevant)
+## Read authority
 - docs/platform.md
 - docs/mvp2-plan.md
 - docs/security.md
-- docs/contracts.md
-- docs/g1-agent-harness.md
-- docs/g11-execution-boundary.md
-- docs/g12-runtime.md
 - docs/g13-model-proposal.md
+- docs/g12-runtime.md
+- docs/integration-audit-2026-10-09.md (on PR #6)
 
-## Current work
-- Independently review G0–G1.3 exact-head tests and security limitations.
-- Validate G1.3 schema and negative tests with no paid live inference.
-- Plan guarded patch approval + separate sandbox evaluation; do not execute unknown model code in existing G1.2 trusted-fixture runner.
-- Do not merge stacked PRs without acceptance.
+## This Gate's current code
+- Optional OpenAI Responses model proposal only; zero model tools.
+- No generated code is applied or executed.
+- Requests must be fixed HTTPS endpoint, no redirect, no ambient proxy.
+- Tests must prove API credential is not sent to redirect/proxy targets.
+- No live model API call is claimed by fixture-based CI.
+- G1.2 Docker smoke is still for fixed trusted fixtures, not unknown AI code.
 
-## Explicitly NOT complete
-- No verified real provider API call in CI and no Codex CLI/Claude Code runner.
-- No AI-generated code executed, sandboxed or accepted as correct.
-- No externally attested proof, production authorization, pilot project adoption or closed gates.
+## Next
+1. Check exact-head CI for credential-safe transport patch.
+2. Propagate this fix to PR #6 without overwriting G1.4 code.
+3. Obtain independent human review / main protection via Issue #7 before merges.
+4. Later, build a separately reviewed inference/sandbox runtime. No premature
+   authenticated approvals, signed evidence or autonomous deployment claims.

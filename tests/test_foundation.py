@@ -61,7 +61,7 @@ class FoundationTests(unittest.TestCase):
                 encoding="utf-8"
             )
             self.assertFalse(verify_project(out))
-            self.assertEqual(main(["verify", "--project", str(out)]), 1)
+            self.assertEqual(main(["verify", "--project", str(out), "--trust-project-code"]), 1)
             evidence = json.loads((out / ".foundation/evidence.json").read_text(encoding="utf-8"))
             self.assertEqual(evidence["result"], "fail")
             self.assertEqual(evidence["checks"][0]["id"], "unit-test")
@@ -132,6 +132,23 @@ class FoundationTests(unittest.TestCase):
                 self.skipTest("Creating symlinks requires OS privileges")
             with self.assertRaises(ValueError):
                 verify_project(out)
+
+    def test_cli_verifier_denies_implicit_code_execution(self):
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "trusted-fixture"
+            init_project("python-service", out)
+            with patch("foundation.__main__.subprocess.run",
+                       side_effect=AssertionError("Checks must not run without consent")) as run:
+                self.assertEqual(main(["verify", "--project", str(out)]), 2)
+                run.assert_not_called()
+            self.assertFalse((out / ".foundation/evidence.json").exists())
+            self.assertEqual(main(["verify", "--project", str(out),
+                                   "--trust-project-code"]), 0)
+            ev = json.loads((out / ".foundation/evidence.json").read_text(encoding="utf-8"))
+            self.assertEqual(ev["result"], "pass")
+            self.assertEqual(ev["trustLevel"], "local-unattested")
 
     def test_unknown_stack(self):
         with tempfile.TemporaryDirectory() as temp:

@@ -2,7 +2,7 @@
 
 - Stack pack catalog is **metadata only**; command strings must not be loaded from user project manifests.
 - CLI check commands currently reside in trusted foundation source code, with no `shell=True`.
-- Local verification executes tests from the selected project; therefore use only **trusted local projects**. This G0 CLI is NOT a secure sandbox for malicious repos.
+- Local verification executes tests from the selected project; the CLI requires explicit `--trust-project-code` before invoking any check. This is only a consent/intent guard, not trust enforcement, isolation or sandboxing. Direct use of `verify_project()` remains trusted-integrator-only. Therefore use only **trusted local projects**. This G0 CLI is NOT a secure sandbox for malicious repos.
 - The destination must not pre-exist, preventing silent overwrites. Symlinks, writable checkout boundaries, and TOCTOU require hardening before multi-user service deployment.
 - Local evidence is self-reported, editable and **not independent attestation**.
 - No production credentials, cloud write access, auto-merge, unattended destructive operations, or downloaded third-party skill execution.

@@ -41,3 +41,10 @@ their own historical changes. No Gate is closed by a green CI alone.
 - Main branch has no verified ruleset enforcement; connector cannot mutate it.
 - CI passing is necessary but insufficient. Independent review is mandatory.
 - If PR #1 is marked Ready, G0 remains NOT CLOSED until approval and verified settings.
+
+## Local execution acknowledgement hardening (2026-10-10)
+
+- `foundation verify` requires `--trust-project-code` to prevent accidental execution of project-owned tests/npm scripts.
+- Python API `verify_project()` remains trusted-integrator-only and does not enforce user identity or sandbox isolation.
+- README/CI golden path and negative tests updated. New exact-head CI must pass before claiming this completed.
+- Issue #7 remains BLOCKING: `main` protected=false, Rulesets=[], no independent review on PR #1; no merge approval.

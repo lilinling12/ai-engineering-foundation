@@ -26,3 +26,9 @@
 No gate accepted or merged; no authenticated production approval, no
 independent untrusted-code sandbox assurance, no real Codex CLI/Claude Code
 integration or signed provenance, no pilot-product adoption.
+
+## Integration sync (2026-10-09)
+
+- G0 npm lockfile, `npm ci` golden path, and verified full Action SHAs propagated through all stacked PRs.
+- Risk INT-004 and INT-005 implementation remediated; independent reviewer acceptance remains open.
+- After propagation, check exact HEAD SHA of every branch and workflows; do not cite previous green results for updated SHAs.

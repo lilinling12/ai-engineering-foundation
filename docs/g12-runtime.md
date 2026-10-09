@@ -34,3 +34,12 @@ Image resolution: the CI smoke first pulls a publicly tagged Python image, resol
 5. Independent external acceptance against a preserved test oracle, signed or externally verified exact-head execution evidence.
 
 The fact that CI runs real Docker does not make G1.2 or G1 fully accepted.
+
+## Integration audit repair (2026-10-09)
+
+- Real executor refuses *all* workspace roots except the named, reviewed in-repository fixture directories; acceptance mount is restricted to its exact reviewed location. Planner is still a separate pure command-assembly helper.
+- Host bind mount paths containing Docker `--mount` delimiters/control characters are rejected before composing the CLI argument. See [Docker bind-mount syntax](https://docs.docker.com/engine/storage/bind-mounts/).
+- Cleanup return codes are now inspected. If forced removal fails, a second `docker container inspect` must verify the container is absent; a surviving container or daemon error is fail-closed. Auto-removed containers are not mistakenly rejected.
+- Three environment flags are **NOT host authentication**. This remains a dedicated GitHub-hosted CI smoke, not a security boundary for arbitrary AI code.
+
+`foundation verify` on arbitrary projects also remains trusted-local only. Do not treat a green Docker smoke as approval for actual model-generated code.

@@ -65,3 +65,11 @@ No gates are closed by this audit alone.
 - Full immutable Action SHAs are applied to all workflows, including PR #4+ Docker smoke and artifact upload.
 - G0 remediation synchronized into PR #2→#6 via non-force merge ancestry preserving each PR's original features.
 - Green CI does not replace independent review. The current six PRs remain Draft, unmerged, and no Gate is accepted yet.
+
+## Independent review readiness update (2026-10-09)
+
+- G0 branch added tests for negative verification evidence, CLI non-zero result, symlink output rejection and unsupported manifest version.
+- `.github/PULL_REQUEST_TEMPLATE.md` and `docs/governance/merge-gates.md` codify reviewer checklist and owner-controlled branch settings.
+- PR #1 was moved from Draft to **Ready for review** after automated checks; this is a request for human review, **not G0 acceptance**.
+- `main` API reported `protected=false`, active Rulesets API returned `[]`, and Branch Protection GET was inaccessible to this integration (403). Documenting a merge policy cannot enforce it.
+- No independently approved review is known. Human reviewer and repo administrator are needed to activate/enforce the merge gate.

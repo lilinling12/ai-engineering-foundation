@@ -32,3 +32,13 @@ integration or signed provenance, no pilot-product adoption.
 - G0 npm lockfile, `npm ci` golden path, and verified full Action SHAs propagated through all stacked PRs.
 - Risk INT-004 and INT-005 implementation remediated; independent reviewer acceptance remains open.
 - After propagation, check exact HEAD SHA of every branch and workflows; do not cite previous green results for updated SHAs.
+
+## 2026-10-09 G0 reviewer handoff
+
+- PR #1 is Ready for review, **NOT APPROVED**, NOT MERGED.
+- G0 negative acceptance tests, PR review template and merge gate policy
+  synchronized through the complete PR stack, preserving Git history.
+- Main branch ruleset is not active, and automation cannot create it with
+  the available GitHub connector. Administrator action is required.
+- Recheck all exact-head CI after this synchronization; old SHA results are
+  not substitutes.

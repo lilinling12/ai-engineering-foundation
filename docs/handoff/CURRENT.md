@@ -31,3 +31,13 @@
 ## Relationship to upper layers
 PR #2–#6 remain Draft and must receive these G0 changes without overwriting
 their own historical changes. No Gate is closed by a green CI alone.
+
+## G0 acceptance hardening — 2026-10-09
+
+- Negative tests cover failed verification evidence, symlinked output destination
+  rejection and incompatible project manifests.
+- PR review checklist and merge-governance policy proposed in
+  `docs/governance/merge-gates.md`.
+- Main branch has no verified ruleset enforcement; connector cannot mutate it.
+- CI passing is necessary but insufficient. Independent review is mandatory.
+- If PR #1 is marked Ready, G0 remains NOT CLOSED until approval and verified settings.

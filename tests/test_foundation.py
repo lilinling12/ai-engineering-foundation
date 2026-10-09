@@ -45,6 +45,50 @@ class FoundationTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 verify_project(out)
 
+
+    def test_failed_validation_emits_negative_evidence(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "broken"
+            init_project("python-service", out)
+            (out / "tests/test_core.py").write_text(
+                "import unittest\\n"
+                "class Broken(unittest.TestCase):\\n"
+                "    def test_failure(self):\\n"
+                "        self.assertEqual(1, 2)\\n",
+                encoding="utf-8"
+            )
+            self.assertFalse(verify_project(out))
+            evidence = json.loads((out / ".foundation/evidence.json").read_text(encoding="utf-8"))
+            self.assertEqual(evidence["result"], "fail")
+            self.assertEqual(evidence["checks"][0]["id"], "unit-test")
+            self.assertEqual(evidence["checks"][0]["result"], "fail")
+            self.assertNotEqual(evidence["checks"][0]["exitCode"], 0)
+            self.assertEqual(evidence["trustLevel"], "local-unattested")
+
+    def test_reject_symlinked_output_without_touching_target(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            original = root / "existing"
+            original.mkdir()
+            (original / "important").write_text("keep", encoding="utf-8")
+            linked = root / "symlink"
+            linked.symlink_to(original, target_is_directory=True)
+            with self.assertRaises(FileExistsError):
+                init_project("python-service", linked)
+            self.assertEqual((original / "important").read_text(encoding="utf-8"), "keep")
+            self.assertFalse((original / ".foundation").exists())
+
+    def test_incompatible_project_manifest_denied(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "bad"
+            init_project("python-service", out)
+            path = out / ".foundation/project.json"
+            manifest = json.loads(path.read_text(encoding="utf-8"))
+            manifest["contract"] = "foundation.project/v999"
+            path.write_text(json.dumps(manifest), encoding="utf-8")
+            with self.assertRaises(ValueError):
+                verify_project(out)
+
     def test_unknown_stack(self):
         with tempfile.TemporaryDirectory() as temp:
             with self.assertRaises(ValueError):

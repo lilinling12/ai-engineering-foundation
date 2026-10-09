@@ -1,0 +1,215 @@
+import json
+from pathlib import Path
+import tempfile
+import unittest
+from foundation.__main__ import catalog, init_project, verify_project, main
+
+class FoundationTests(unittest.TestCase):
+    def test_catalog_four_packs_two_runnable(self):
+        packs = catalog()
+        self.assertEqual(set(packs), {"python-service", "typescript-api", "java-spring", "wechat-native"})
+        self.assertEqual(sum(x["status"] == "runnable" for x in packs.values()), 2)
+
+    def test_python_golden_path(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "fresh"
+            init_project("python-service", out)
+            self.assertTrue((out / "AGENTS.md").exists())
+            self.assertTrue(verify_project(out))
+            evidence = json.loads((out / ".foundation/evidence.json").read_text())
+            self.assertEqual(evidence["result"], "pass")
+            self.assertEqual(evidence["trustLevel"], "local-unattested")
+
+    def test_no_overwrite(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "existing"
+            out.mkdir()
+            (out / "keep").write_text("keep")
+            with self.assertRaises(FileExistsError):
+                init_project("python-service", out)
+            self.assertEqual((out / "keep").read_text(), "keep")
+
+    def test_contract_only_cannot_scaffold(self):
+        with tempfile.TemporaryDirectory() as temp:
+            with self.assertRaises(ValueError):
+                init_project("java-spring", Path(temp) / "java")
+
+    def test_manifest_must_not_define_commands(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "python"
+            init_project("python-service", out)
+            path = out / ".foundation/project.json"
+            manifest = json.loads(path.read_text())
+            manifest["command"] = "rm -rf /"
+            path.write_text(json.dumps(manifest))
+            with self.assertRaises(ValueError):
+                verify_project(out)
+
+
+    def test_failed_validation_emits_negative_evidence(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "broken"
+            init_project("python-service", out)
+            (out / "tests/test_core.py").write_text(
+                chr(10).join([
+                    "import unittest",
+                    "class Broken(unittest.TestCase):",
+                    "    def test_failure(self):",
+                    "        self.assertEqual(1, 2)",
+                    "",
+                ]),
+                encoding="utf-8"
+            )
+            self.assertFalse(verify_project(out))
+            self.assertEqual(main(["verify", "--project", str(out), "--trust-project-code"]), 1)
+            evidence = json.loads((out / ".foundation/evidence.json").read_text(encoding="utf-8"))
+            self.assertEqual(evidence["result"], "fail")
+            self.assertEqual(evidence["checks"][0]["id"], "unit-test")
+            self.assertEqual(evidence["checks"][0]["result"], "fail")
+            self.assertNotEqual(evidence["checks"][0]["exitCode"], 0)
+            self.assertEqual(evidence["checks"][0]["failureKind"], "check-failed")
+            self.assertIn("redacted", evidence["checks"][0]["outputTail"])
+            self.assertEqual(evidence["trustLevel"], "local-unattested")
+
+    def test_test_runner_never_persists_sensitive_output(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "secret-output-fixture"
+            init_project("python-service", out)
+            sentinel = "FIXTURE_SECRET_MUST_NOT_LEAK_98765"
+            (out / "tests/test_secret.py").write_text(
+                chr(10).join([
+                    "import unittest",
+                    "class SensitiveOutput(unittest.TestCase):",
+                    "    def test_no_leak(self):",
+                    f"        self.fail('{sentinel}')",
+                    "",
+                ]),
+                encoding="utf-8"
+            )
+            self.assertFalse(verify_project(out))
+            evidence_text = (out / ".foundation/evidence.json").read_text(encoding="utf-8")
+            self.assertNotIn(sentinel, evidence_text)
+            evidence = json.loads(evidence_text)
+            self.assertEqual(evidence["checks"][0]["failureKind"], "check-failed")
+            self.assertEqual(evidence["checks"][0]["outputTail"],
+                             "[redacted; command output is never persisted]")
+
+    def test_subprocess_timeout_does_not_persist_command_details(self):
+        from unittest.mock import patch
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "timeout"
+            init_project("python-service", out)
+            with patch("foundation.__main__.subprocess.run",
+                       side_effect=subprocess.TimeoutExpired(["sensitive-arg"], 180)):
+                self.assertFalse(verify_project(out))
+            evidence_text = (out / ".foundation/evidence.json").read_text(encoding="utf-8")
+            self.assertNotIn("sensitive-arg", evidence_text)
+            evidence = json.loads(evidence_text)
+            self.assertEqual(evidence["checks"][0]["failureKind"], "timeout")
+            self.assertEqual(evidence["checks"][0]["exitCode"], 124)
+
+    def test_missing_test_binary_does_not_persist_exception_details(self):
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "missing-binary"
+            init_project("python-service", out)
+            with patch("foundation.__main__.subprocess.run",
+                       side_effect=OSError("SECRET_ENV_VALUE_SHOULD_NOT_APPEAR")):
+                self.assertFalse(verify_project(out))
+            text = (out / ".foundation/evidence.json").read_text(encoding="utf-8")
+            self.assertNotIn("SECRET_ENV_VALUE_SHOULD_NOT_APPEAR", text)
+            evidence = json.loads(text)
+            self.assertEqual(evidence["checks"][0]["failureKind"], "spawn-error")
+            self.assertEqual(evidence["checks"][0]["exitCode"], 127)
+
+    def test_reject_symlinked_output_without_touching_target(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            original = root / "existing"
+            original.mkdir()
+            (original / "important").write_text("keep", encoding="utf-8")
+            linked = root / "symlink"
+            try:
+                linked.symlink_to(original, target_is_directory=True)
+            except (OSError, NotImplementedError):
+                self.skipTest("Creating symlinks requires OS privileges")
+            with self.assertRaises(FileExistsError):
+                init_project("python-service", linked)
+            self.assertEqual((original / "important").read_text(encoding="utf-8"), "keep")
+            self.assertFalse((original / ".foundation").exists())
+
+    def test_incompatible_project_manifest_denied(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "bad"
+            init_project("python-service", out)
+            path = out / ".foundation/project.json"
+            manifest = json.loads(path.read_text(encoding="utf-8"))
+            manifest["contract"] = "foundation.project/v999"
+            path.write_text(json.dumps(manifest), encoding="utf-8")
+            with self.assertRaises(ValueError):
+                verify_project(out)
+
+    def test_reject_unknown_scaffold_version_without_check_execution(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "bad"
+            init_project("python-service", out)
+            manifest_path = out / ".foundation/project.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            for incompatible in ("999.0.0", None, [], True):
+                with self.subTest(incompatible=incompatible):
+                    manifest["scaffoldVersion"] = incompatible
+                    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+                    with self.assertRaises(ValueError):
+                        verify_project(out)
+
+    def test_reject_untrusted_marker_before_running_checks(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "stage"
+            init_project("python-service", out)
+            (out / ".foundation/UNTRUSTED_DO_NOT_EXECUTE").write_text(
+                "do-not-run", encoding="utf-8"
+            )
+            with self.assertRaises(ValueError):
+                verify_project(out)
+            self.assertFalse((out / ".foundation/evidence.json").exists())
+
+    def test_reject_dangling_untrusted_marker_symlink(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "project"
+            init_project("python-service", out)
+            marker = out / ".foundation" / "UNTRUSTED_DO_NOT_EXECUTE"
+            try:
+                marker.symlink_to(out / "does-not-exist")
+            except (OSError, NotImplementedError):
+                self.skipTest("Creating symlinks requires OS privileges")
+            with self.assertRaises(ValueError):
+                verify_project(out)
+
+    def test_cli_verifier_denies_implicit_code_execution(self):
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "trusted-fixture"
+            init_project("python-service", out)
+            with patch("foundation.__main__.subprocess.run",
+                       side_effect=AssertionError("Checks must not run without consent")) as run:
+                self.assertEqual(main(["verify", "--project", str(out)]), 2)
+                run.assert_not_called()
+            self.assertFalse((out / ".foundation/evidence.json").exists())
+            self.assertEqual(main(["verify", "--project", str(out),
+                                   "--trust-project-code"]), 0)
+            ev = json.loads((out / ".foundation/evidence.json").read_text(encoding="utf-8"))
+            self.assertEqual(ev["result"], "pass")
+            self.assertEqual(ev["trustLevel"], "local-unattested")
+
+    def test_unknown_stack(self):
+        with tempfile.TemporaryDirectory() as temp:
+            with self.assertRaises(ValueError):
+                init_project("../../untrusted", Path(temp) / "unsafe")
+
+if __name__ == "__main__":
+    unittest.main()
+

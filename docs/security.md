@@ -1,0 +1,13 @@
+# Trust and safety boundaries v0.1
+
+- Stack pack catalog is **metadata only**; command strings must not be loaded from user project manifests.
+- CLI check commands currently reside in trusted foundation source code, with no `shell=True`.
+- Local verification executes tests from the selected project; the CLI requires explicit `--trust-project-code` before invoking any check. This is only a consent/intent guard, not trust enforcement, isolation or sandboxing. Direct use of `verify_project()` remains trusted-integrator-only. Therefore use only **trusted local projects**. This G0 CLI is NOT a secure sandbox for malicious repos.
+- The destination must not pre-exist, preventing silent overwrites. Symlinks, writable checkout boundaries, and TOCTOU require hardening before multi-user service deployment.
+- Local evidence is self-reported, editable and **not independent attestation**.
+- No production credentials, cloud write access, auto-merge, unattended destructive operations, or downloaded third-party skill execution.
+- Before remote Agent execution: isolated workspaces, egress restrictions, least-privilege credentials, approval gates, pinned tools, artifact provenance, and independent verification.
+- GitHub workflow permissions should be read-only except narrowly scoped PR automation.
+
+
+- Verification evidence **never persists subprocess stdout/stderr or raw exception strings**. It records exit codes and fixed failure-kind labels only, because test logs may include credentials and protected data. This is evidence minimization, not a guarantee that already-available runner logs or other tools cannot leak data.

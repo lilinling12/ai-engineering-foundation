@@ -9,3 +9,5 @@
 - Before remote Agent execution: isolated workspaces, egress restrictions, least-privilege credentials, approval gates, pinned tools, artifact provenance, and independent verification.
 - GitHub workflow permissions should be read-only except narrowly scoped PR automation.
 
+
+- Verification evidence **never persists subprocess stdout/stderr or raw exception strings**. It records exit codes and fixed failure-kind labels only, because test logs may include credentials and protected data. This is evidence minimization, not a guarantee that already-available runner logs or other tools cannot leak data.

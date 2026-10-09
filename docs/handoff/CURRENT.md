@@ -48,3 +48,10 @@ their own historical changes. No Gate is closed by a green CI alone.
 - Python API `verify_project()` remains trusted-integrator-only and does not enforce user identity or sandbox isolation.
 - README/CI golden path and negative tests updated. New exact-head CI must pass before claiming this completed.
 - Issue #7 remains BLOCKING: `main` protected=false, Rulesets=[], no independent review on PR #1; no merge approval.
+
+## Evidence minimization review (2026-10-10)
+
+- G0 verifier no longer writes raw test command output/exception text to `.foundation/evidence.json`.
+- Checks retain status, exit code, explicit failure kind; error details require a separate operator-controlled debugging session.
+- Regression tests cover secret-bearing failure output, timeouts and spawn errors.
+- Exact-head CI and independent review still required. Issue #7 remains open; do not self-approve or merge.

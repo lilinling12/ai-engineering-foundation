@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -34,3 +36,28 @@ jobs:
         working-directory: templates/typescript-api
         run: npm run build
 
+  offline-docker-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pull disposable smoke-test Python image
+        run: docker pull python:3.12-slim
+      - name: Execute real offline containers on GitHub-hosted runner
+        env:
+          FOUNDATION_EPHEMERAL_RUNNER: 'yes'
+        run: |
+          IMAGE_DIGEST="$(docker image inspect --format '{{index .RepoDigests 0}}' python:3.12-slim)"
+          python -m foundation.docker_smoke --image "$IMAGE_DIGEST"
+      - name: Upload non-attested smoke log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: offline-docker-smoke
+          path: artifacts/offline-docker-smoke.json
+          if-no-files-found: ignore

@@ -95,8 +95,9 @@ class GatewayTests(unittest.TestCase):
             opener = _make_https_opener()
         proxies = [h for h in opener.handlers
                    if isinstance(h, urllib.request.ProxyHandler)]
-        self.assertEqual(len(proxies), 1)
-        self.assertEqual(proxies[0].proxies, {})
+        # Empty ProxyHandler({}) may be optimized out by urllib.build_opener.
+        # The security property is no nonempty/ambient proxy configuration.
+        self.assertFalse(any(handler.proxies for handler in proxies))
         rejectors = [h for h in opener.handlers if isinstance(h, _RejectRedirect)]
         self.assertEqual(len(rejectors), 1)
         req = urllib.request.Request(

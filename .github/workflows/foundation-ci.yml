@@ -43,4 +43,4 @@ jobs:
           cd "${RUNNER_TEMP}/g0-typescript-seed"
           npm ci --ignore-scripts --no-audit --no-fund
           cd "$GITHUB_WORKSPACE"
-          python -m foundation verify --project "${RUNNER_TEMP}/g0-typescript-seed"
+          python -m foundation verify --project "${RUNNER_TEMP}/g0-typescript-seed" --trust-project-code

@@ -121,6 +121,18 @@ class FoundationTests(unittest.TestCase):
                 verify_project(out)
             self.assertFalse((out / ".foundation/evidence.json").exists())
 
+    def test_reject_dangling_untrusted_marker_symlink(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "project"
+            init_project("python-service", out)
+            marker = out / ".foundation" / "UNTRUSTED_DO_NOT_EXECUTE"
+            try:
+                marker.symlink_to(out / "does-not-exist")
+            except (OSError, NotImplementedError):
+                self.skipTest("Creating symlinks requires OS privileges")
+            with self.assertRaises(ValueError):
+                verify_project(out)
+
     def test_unknown_stack(self):
         with tempfile.TemporaryDirectory() as temp:
             with self.assertRaises(ValueError):

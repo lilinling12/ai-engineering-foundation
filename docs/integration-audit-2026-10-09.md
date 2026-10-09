@@ -86,3 +86,10 @@ No gates are closed by this audit alone.
 - `foundation verify` CLI now refuses implicit execution and requires `--trust-project-code`. Negative tests demonstrate denial before spawning a subprocess, and successful explicit trusted fixture verification.
 - This acknowledgement is not source trust authentication or sandboxing. Direct Python `verify_project()` remains for trusted integrators and built-in fixtures only.
 - G0 changes have been synchronized across the six stacked PRs with preserved ancestry. G0–G1.4 remain NOT CLOSED until independent review and active main Ruleset (Issue #7).
+
+## 2026-10-10 evidence privacy audit
+
+- G0 `verify_project()` previously persisted up to 4KB of raw Python/npm output into `.foundation/evidence.json`, potentially exposing credentials or project data. Remediated: raw output is discarded; checks retain structured status, exit code, and fixed failure kind only.
+- Regression tests include a deliberately secret-bearing assertion output and timeout/spawn failures. No raw exception or test output should be persisted in G0 evidence.
+- Scope limitation: G1's independent fixture evaluator and G1.2's trusted fixture Docker smoke have separate output handling; do not assume this change sanitizes their logs or authorizes arbitrary code execution.
+- **Actual state:** As observed on 2026-10-10: PR #1 Ready for review, PR #2–#6 Draft; no independent approval, no active main Ruleset. Issue #7 remains Open. These observations require revalidation each session.

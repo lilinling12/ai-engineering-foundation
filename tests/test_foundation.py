@@ -67,8 +67,63 @@ class FoundationTests(unittest.TestCase):
             self.assertEqual(evidence["checks"][0]["id"], "unit-test")
             self.assertEqual(evidence["checks"][0]["result"], "fail")
             self.assertNotEqual(evidence["checks"][0]["exitCode"], 0)
-            self.assertIn("AssertionError", evidence["checks"][0]["outputTail"])
+            self.assertEqual(evidence["checks"][0]["failureKind"], "check-failed")
+            self.assertIn("redacted", evidence["checks"][0]["outputTail"])
             self.assertEqual(evidence["trustLevel"], "local-unattested")
+
+    def test_test_runner_never_persists_sensitive_output(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "secret-output-fixture"
+            init_project("python-service", out)
+            sentinel = "FIXTURE_SECRET_MUST_NOT_LEAK_98765"
+            (out / "tests/test_secret.py").write_text(
+                chr(10).join([
+                    "import unittest",
+                    "class SensitiveOutput(unittest.TestCase):",
+                    "    def test_no_leak(self):",
+                    f"        self.fail('{sentinel}')",
+                    "",
+                ]),
+                encoding="utf-8"
+            )
+            self.assertFalse(verify_project(out))
+            evidence_text = (out / ".foundation/evidence.json").read_text(encoding="utf-8")
+            self.assertNotIn(sentinel, evidence_text)
+            evidence = json.loads(evidence_text)
+            self.assertEqual(evidence["checks"][0]["failureKind"], "check-failed")
+            self.assertEqual(evidence["checks"][0]["outputTail"],
+                             "[redacted; command output is never persisted]")
+
+    def test_subprocess_timeout_does_not_persist_command_details(self):
+        from unittest.mock import patch
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "timeout"
+            init_project("python-service", out)
+            with patch("foundation.__main__.subprocess.run",
+                       side_effect=subprocess.TimeoutExpired(["sensitive-arg"], 180)):
+                self.assertFalse(verify_project(out))
+            evidence_text = (out / ".foundation/evidence.json").read_text(encoding="utf-8")
+            self.assertNotIn("sensitive-arg", evidence_text)
+            evidence = json.loads(evidence_text)
+            self.assertEqual(evidence["checks"][0]["failureKind"], "timeout")
+            self.assertEqual(evidence["checks"][0]["exitCode"], 124)
+
+    def test_missing_test_binary_does_not_persist_exception_details(self):
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "missing-binary"
+            init_project("python-service", out)
+            with patch("foundation.__main__.subprocess.run",
+                       side_effect=OSError("SECRET_ENV_VALUE_SHOULD_NOT_APPEAR")):
+                self.assertFalse(verify_project(out))
+            text = (out / ".foundation/evidence.json").read_text(encoding="utf-8")
+            self.assertNotIn("SECRET_ENV_VALUE_SHOULD_NOT_APPEAR", text)
+            evidence = json.loads(text)
+            self.assertEqual(evidence["checks"][0]["failureKind"], "spawn-error")
+            self.assertEqual(evidence["checks"][0]["exitCode"], 127)
 
     def test_reject_symlinked_output_without_touching_target(self):
         with tempfile.TemporaryDirectory() as temp:

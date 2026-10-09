@@ -140,6 +140,8 @@ def main(argv: list[str] | None = None) -> int:
     init.add_argument("--dest", type=Path, required=True)
     verify = subs.add_parser("verify")
     verify.add_argument("--project", type=Path, required=True)
+    verify.add_argument("--trust-project-code", action="store_true",
+                        help="Acknowledge that project tests and npm scripts execute LOCAL code; NOT a sandbox")
     args = parser.parse_args(argv)
     try:
         if args.command == "catalog":
@@ -148,6 +150,8 @@ def main(argv: list[str] | None = None) -> int:
             init_project(args.stack, args.dest)
             print(f"Initialized {args.stack}: {args.dest}")
         elif args.command == "verify":
+            if not args.trust_project_code:
+                raise ValueError("Local project checks execute code. Pass --trust-project-code only for trusted local projects; this is NOT a sandbox")
             return 0 if verify_project(args.project.resolve()) else 1
         elif args.command == "propose":
             from .model_gateway import run_live_proposal

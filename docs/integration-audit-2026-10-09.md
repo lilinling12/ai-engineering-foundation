@@ -80,3 +80,9 @@ No gates are closed by this audit alone.
 - Regression tests cover unsupported versions and marker blocking. The local verifier is still NOT a sandbox; marker presence is a soft misuse-prevention convention, not tamper-proof authority.
 - The change is propagated through PR #2–#6 with preserved Git ancestry, not by overwriting each PR's extended CLI.
 - Issue #7 remains open; no independent review or enforced main Ruleset observed.
+
+## G0 explicit local-execution consent (2026-10-10)
+
+- `foundation verify` CLI now refuses implicit execution and requires `--trust-project-code`. Negative tests demonstrate denial before spawning a subprocess, and successful explicit trusted fixture verification.
+- This acknowledgement is not source trust authentication or sandboxing. Direct Python `verify_project()` remains for trusted integrators and built-in fixtures only.
+- G0 changes have been synchronized across the six stacked PRs with preserved ancestry. G0–G1.4 remain NOT CLOSED until independent review and active main Ruleset (Issue #7).

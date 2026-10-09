@@ -10,7 +10,7 @@ The `.foundation/project.json` manifest records `contract`=`foundation.project/v
 
 ## Verification evidence
 
-The CLI writes `.foundation/evidence.json`: `contract`, `stack`, `result`, `checks`, `timestamp`, optional `gitHead`, and `trustLevel=local-unattested`. This file is local diagnostics. A future CI proof must bind exact commit SHA, workflow identity, check versions and artifact digest.
+The CLI writes `.foundation/evidence.json`: `contract`, `stack`, `result`, `checks`, `timestamp`, optional `gitHead`, and `trustLevel=local-unattested`. This file is local diagnostics. Check evidence stores status, exit code and a bounded failure kind; raw stdout/stderr are intentionally discarded to avoid persisting credentials or private test output. For detailed failures, rerun tests manually in a trusted local workspace. A future CI proof must bind exact commit SHA, workflow identity, check versions and artifact digest.
 
 ## Agent Harness target protocol
 

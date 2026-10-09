@@ -91,13 +91,21 @@ def verify_project(project: Path) -> bool:
     for name, command_factory in CHECKS[pack]:
         argv = command_factory()
         try:
-            run = subprocess.run(argv, cwd=project, capture_output=True, text=True, timeout=180)
+            # Never persist raw subprocess output into reviewable evidence.
+            # Test logs may contain credentials, patient data, or other secrets.
+            run = subprocess.run(
+                argv, cwd=project, stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL, timeout=180, check=False
+            )
             code = run.returncode
-            output = (run.stdout + "\n" + run.stderr)[-4000:]
-        except (OSError, subprocess.TimeoutExpired) as exc:
-            code, output = 1, str(exc)
+            failure_kind = "none" if code == 0 else "check-failed"
+        except subprocess.TimeoutExpired:
+            code, failure_kind = 124, "timeout"
+        except OSError:
+            code, failure_kind = 127, "spawn-error"
         checks.append({"id": name, "result": "pass" if code == 0 else "fail",
-                       "exitCode": code, "outputTail": output})
+                       "exitCode": code, "failureKind": failure_kind,
+                       "outputTail": "[redacted; command output is never persisted]"})
         all_ok = all_ok and code == 0
     evidence = {
         "contract": "foundation.evidence/v0", "stack": pack,

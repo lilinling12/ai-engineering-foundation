@@ -74,7 +74,8 @@ def git_head(project: Path) -> str | None:
         return None
 
 def verify_project(project: Path) -> bool:
-    if (project / ".foundation" / "UNTRUSTED_DO_NOT_EXECUTE").exists():
+    untrusted_marker = project / ".foundation" / "UNTRUSTED_DO_NOT_EXECUTE"
+    if untrusted_marker.exists() or untrusted_marker.is_symlink():
         raise ValueError("Untrusted staged source must not run in trusted-local verifier")
     manifest = project / ".foundation" / "project.json"
     obj = json.loads(manifest.read_text(encoding="utf-8"))

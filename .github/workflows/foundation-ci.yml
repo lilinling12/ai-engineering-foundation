@@ -81,13 +81,6 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
-      - name: Generate pinned Codex CLI dependency lock from npm Registry (bootstrap)
-        working-directory: tools/codex-cli
-        run: |
-          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-          echo FOUNDATION_CODEX_LOCK_BEGIN
-          cat package-lock.json
-          echo FOUNDATION_CODEX_LOCK_END
       - name: Install exact Codex CLI version in disposable job (no credentials)
         working-directory: tools/codex-cli
         run: |

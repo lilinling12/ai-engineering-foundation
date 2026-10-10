@@ -46,3 +46,12 @@ sandbox, Codex CLI / Claude Code runtime, or independent cryptographic attestati
   forwarding model credentials off the single approved HTTPS endpoint.
 - G1.3 transport tests and source are synchronized into this PR's stacked ancestry.
 - Recheck current SHA and exact-head checks after this change; no Gate is closed.
+
+## G1.3 Codex CLI compatibility checkpoint (2026-10-10)
+
+- PR #5 provides a proposal-only Codex CLI request builder with no process launch.
+- The CI compatibility test installs the actual Codex binary from a frozen npm
+  lockfile and verifies CLI flags with no credentials or live inference.
+- Synced into this PR with preserved Git ancestry. Re-check exact-head checks
+  and PR base/head on GitHub after this update.
+- Issue #7 still requires independent approval and main ruleset for any merge.

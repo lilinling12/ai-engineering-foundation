@@ -107,3 +107,21 @@ No gates are closed by this audit alone.
 - **Review requirement:** inspect source and exact-head Python/TS/Docker checks.
   This does not prove network egress enforcement or production secret brokerage.
   No real OpenAI API call was made for these tests.
+
+## G1.3 Codex CLI Adapter capability (2026-10-10)
+
+- G1.3 now has `foundation/codex_cli_adapter.py`: constructs strict
+  `codex exec --sandbox read-only --ephemeral` requests with a reviewed fixed
+  fixture, structured JSON schema and existing path/size validator.
+- The builder **does not invoke** Codex or execute proposed code. It only
+  specifies how a future separately isolated runtime can drive the CLI.
+- GitHub Actions uses the real pinned `@openai/codex@0.162.1` CLI binary for
+  `--version` and `exec --help` compatibility checks, **without secrets,
+  LLM inference or user repository access**.
+- A registry-generated npm v3 lockfile with SHA-512 tarball integrity is committed;
+  CLI interface smoke installs it using `npm ci`.
+- New risk / acceptance gap: actual model invocation must be demonstrated in
+  a reviewed disposable runtime with enforced outbound API egress and credentials
+  isolated from agent-controlled tools. Codex CLI sandbox flags alone are not
+  a sufficient tenant security boundary.
+- Do not claim this is a completed real autonomous coding path or close G1.3.

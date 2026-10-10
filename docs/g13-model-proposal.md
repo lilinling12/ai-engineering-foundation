@@ -66,3 +66,43 @@ OpenAI Responses API Structured Outputs and non-interactive Codex exec documenta
 - `codex-cli-interface-smoke` installs the exact `@openai/codex@0.162.1` binary into an ephemeral, credentialless GitHub job and tests CLI availability/flags. **No live inference, sandbox code execution or API charges** occur in CI.
 - The CI-only Codex CLI dependency lockfile is now committed from the npm 11 GitHub-hosted runner, including upstream SHA-512 integrity fields for the Codex executable and platform variants. It uses `npm ci`; verified dependency integrity alone is **not** production provenance or a security sandbox.
 - A future isolated runtime must enforce image provenance, outbound inference endpoint filtering, tool-level allowlists, audited credentials and separate evaluation before invoking the CLI with real credentials. Codex flags alone are NOT trusted host isolation.
+
+## G1.5 Experimental live Codex CLI invocation (2026-10-10)
+
+A guarded `codex-propose` command now **can launch** the pinned local Codex CLI for
+a single fixed synthetic greeting task. It is not run in CI. It never applies or
+executes the model's proposed source; output passes the same allowlist and is
+stored as a quarantine proposal with local-unattested evidence.
+
+**Prerequisites:** Use a personally controlled **disposable host or VM** with no
+patient/company data, no long-lived credentials, reviewed isolated network
+egress, Node 24 and `npm ci` under `tools/codex-cli`. Use a **short-lived,
+revocable, scope-limited** key. CLI flags and cleaned environment do **not**
+guarantee security: the Codex process or tools it launches may access its API key
+or run commands, and local child processes may survive a timeout. This preview
+MUST NOT be used on a production workstation or a customer repository.
+
+```bash
+cd tools/codex-cli
+npm ci --ignore-scripts --no-audit --no-fund
+cd ../..
+export FOUNDATION_DISPOSABLE_RUNTIME=yes
+export OPENAI_API_KEY="<temporary-scoped-key>"
+python -m foundation codex-propose --model YOUR_AVAILABLE_MODEL_ID \
+  --dest /tmp/codex-greeting-proposal \
+  --permit-paid-inference --acknowledge-local-runtime-risk
+```
+
+The fixed synthetic task is the only supported input. No custom task or project
+path is accepted. The command refuses missing authorization, missing pinned binary,
+incorrect version, overwritten output, malformed structured response, disallowed
+paths, or failed process. Raw Codex stdout/stderr are not persisted.
+
+**Actual verification status:** The GitHub CI uses a fake subprocess to prove
+orchestrator logic and credential minimization, and a real credential-free Codex
+binary to prove CLI interface compatibility. It does **not** run a paid inference,
+does not certify VM/network containment, and does not establish code correctness.
+
+**Production exit gate:** reviewed VM-level isolation, no long-lived secrets
+in Agent process, outbound traffic proxy, descendant process and budget cleanup,
+signed exact-run audit records, and independent human approval.

@@ -36,3 +36,13 @@ Last checked: 2026-10-10. This is a checkpoint, not live GitHub state.
 - G1.3 includes strict `codex exec` argv/schema planning and untrusted JSON proposal validation.
 - CI validates the real Codex CLI binary version and options **without credentials**.
 - No real `codex exec` coding task or isolated inference environment has been exercised; G1.3 remains NOT CLOSED.
+
+## G1.5 live Codex CLI experiment (2026-10-10)
+
+- Fixed synthetic greeting fixture now has opt-in `codex-propose` subprocess
+  launch path; it requires a disposable-host acknowledgement, approved
+  cost/network risk, short-lived key and locked Codex CLI binary.
+- Output is only quarantined structured proposal data, never automatically
+  applied or tested as executable source.
+- CI exercises a fake subprocess and credential-free real CLI interface.
+- No verified real model call or strong host isolation. G1.5 remains OPEN.

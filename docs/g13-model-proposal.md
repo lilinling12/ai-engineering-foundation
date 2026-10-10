@@ -58,3 +58,11 @@ OpenAI Responses API Structured Outputs and non-interactive Codex exec documenta
 - An HTTP 30x response is treated as an error; the API key must not be forwarded to redirect targets. The final effective response URL must equal the approved API URL.
 - Tests verify redirect rejection, empty proxy configuration, one-request behavior, redacted redirect errors and destination mismatch.
 - This is application-layer outbound request hardening, **not host egress filtering**, API key escrow, secure coding-agent sandboxing or evidence attestation. No paid model request was made to verify this change.
+
+## Actual Codex CLI interface compatibility (2026-10-10)
+
+- `foundation/codex_cli_adapter.py` now constructs a **versioned, strict proposal-only** `codex exec` invocation for the reviewed Python greeting fixture.
+- It uses `read-only`, ephemeral sessions, ignored user config and a bounded schema response. It never executes the planned command; output parsing reuses the existing source-path allowlist.
+- `codex-cli-interface-smoke` installs the exact `@openai/codex@0.162.1` binary into an ephemeral, credentialless GitHub job and tests CLI availability/flags. **No live inference, sandbox code execution or API charges** occur in CI.
+- This temporary CI interface check has an exact top-level npm version but **does not yet have a committed transitive lockfile/SBOM**, which must be addressed before the binary can be trusted in production.
+- A future isolated runtime must enforce image provenance, outbound inference endpoint filtering, tool-level allowlists, audited credentials and separate evaluation before invoking the CLI with real credentials. Codex flags alone are NOT trusted host isolation.

@@ -69,3 +69,26 @@ jobs:
           name: offline-docker-smoke
           path: artifacts/offline-docker-smoke.json
           if-no-files-found: ignore
+  codex-cli-interface-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Install exact Codex CLI version in disposable job (no credentials)
+        run: |
+          npm install --prefix "${RUNNER_TEMP}/codex-cli" --ignore-scripts --no-audit --no-fund --no-save @openai/codex@0.162.1
+      - name: Verify real binary and documented exec options (no inference)
+        run: |
+          CODEX="${RUNNER_TEMP}/codex-cli/node_modules/.bin/codex"
+          "$CODEX" --version | grep '0.162.1'
+          "$CODEX" exec --help > "${RUNNER_TEMP}/codex-exec-help.txt"
+          for option in --sandbox --ephemeral --ignore-user-config --output-schema --output-last-message; do
+            grep -q -- "$option" "${RUNNER_TEMP}/codex-exec-help.txt"
+          done

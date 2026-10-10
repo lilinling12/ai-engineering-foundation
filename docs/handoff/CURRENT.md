@@ -30,3 +30,9 @@ Last checked: 2026-10-10. This is a checkpoint, not live GitHub state.
 3. Obtain independent human review / main protection via Issue #7 before merges.
 4. Later, build a separately reviewed inference/sandbox runtime. No premature
    authenticated approvals, signed evidence or autonomous deployment claims.
+
+## Codex CLI adapter protocol check (2026-10-10)
+
+- G1.3 includes strict `codex exec` argv/schema planning and untrusted JSON proposal validation.
+- CI validates the real Codex CLI binary version and options **without credentials**.
+- No real `codex exec` coding task or isolated inference environment has been exercised; G1.3 remains NOT CLOSED.

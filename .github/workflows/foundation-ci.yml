@@ -81,12 +81,20 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
-      - name: Install exact Codex CLI version in disposable job (no credentials)
+      - name: Generate pinned Codex CLI dependency lock from npm Registry (bootstrap)
+        working-directory: tools/codex-cli
         run: |
-          npm install --prefix "${RUNNER_TEMP}/codex-cli" --ignore-scripts --no-audit --no-fund --no-save @openai/codex@0.162.1
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          echo FOUNDATION_CODEX_LOCK_BEGIN
+          cat package-lock.json
+          echo FOUNDATION_CODEX_LOCK_END
+      - name: Install exact Codex CLI version in disposable job (no credentials)
+        working-directory: tools/codex-cli
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
       - name: Verify real binary and documented exec options (no inference)
         run: |
-          CODEX="${RUNNER_TEMP}/codex-cli/node_modules/.bin/codex"
+          CODEX="${GITHUB_WORKSPACE}/tools/codex-cli/node_modules/.bin/codex"
           "$CODEX" --version | grep '0.162.1'
           "$CODEX" exec --help > "${RUNNER_TEMP}/codex-exec-help.txt"
           for option in --sandbox --ephemeral --ignore-user-config --output-schema --output-last-message; do

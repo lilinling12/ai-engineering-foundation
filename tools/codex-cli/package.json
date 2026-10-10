@@ -1,0 +1,9 @@
+{
+  "name": "foundation-codex-cli-smoke",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Disposable CI-only pinned Codex CLI compatibility smoke",
+  "devDependencies": {
+    "@openai/codex": "0.162.1"
+  }
+}

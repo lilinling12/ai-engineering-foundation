@@ -55,9 +55,10 @@ class CodexCliAdapterTests(unittest.TestCase):
                 {"result_path": schema},
             ):
                 with self.subTest(kwargs=kwargs), self.assertRaises(ModelGatewayError):
-                    build_codex_request(task, auth, model="gpt-6",
-                                        worktree=work, schema_path=schema,
-                                        result_path=result, **kwargs)
+                    params = {"model": "gpt-6", "worktree": work,
+                              "schema_path": schema, "result_path": result}
+                    params.update(kwargs)
+                    build_codex_request(task, auth, **params)
 
     def test_valid_proposal_parsed_without_execution(self):
         task = load_task(DEMO_TASK)

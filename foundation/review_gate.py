@@ -65,7 +65,7 @@ def read_quarantine(directory: Path) -> tuple[dict[str, Any], str]:
     fields = {"contract", "provider", "model", "taskId", "authorityDigest", "summary", "changes"}
     if set(proposal) != fields or proposal.get("contract") != PROPOSAL_CONTRACT:
         raise ReviewGateError("Unexpected proposal contract")
-    if proposal.get("provider") != "openai-responses":
+    if proposal.get("provider") not in {"openai-responses", "codex-cli"}:
         raise ReviewGateError("Untrusted provider")
     if not isinstance(proposal.get("model"), str) or not (3 <= len(proposal["model"]) <= 80):
         raise ReviewGateError("Unexpected model field")

@@ -143,6 +143,11 @@ def main(argv: list[str] | None = None) -> int:
     stage.add_argument("--quarantine", required=True, type=Path)
     stage.add_argument("--approval", required=True, type=Path)
     stage.add_argument("--dest", required=True, type=Path)
+    codex = subs.add_parser("codex-propose", help="Opt-in actual Codex CLI inference (synthetic fixture only)")
+    codex.add_argument("--model", required=True)
+    codex.add_argument("--dest", required=True, type=Path)
+    codex.add_argument("--permit-paid-inference", action="store_true")
+    codex.add_argument("--acknowledge-local-runtime-risk", action="store_true")
     init = subs.add_parser("init")
     init.add_argument("--stack", required=True)
     init.add_argument("--dest", type=Path, required=True)
@@ -172,6 +177,12 @@ def main(argv: list[str] | None = None) -> int:
             from .review_gate import stage_reviewed_proposal
             stage_reviewed_proposal(args.quarantine, args.approval, args.dest)
             return 0
+        elif args.command == "codex-propose":
+            from .codex_live import codex_propose
+            return codex_propose(
+                args.dest, args.model, args.permit_paid_inference,
+                args.acknowledge_local_runtime_risk
+            )
         elif args.command == "agent-demo":
             from .harness import run_demo
             return 0 if run_demo(destination=args.dest, task_path=args.task, provider_id=args.provider) else 1

@@ -50,3 +50,9 @@ VM-grade or comparably reviewed isolation for arbitrary generated code, trusted
 image/lockfile provenance, authenticated time-bounded approval tokens, independent
 acceptance tests outside the agent's writable domain, and exact-SHA external evidence
 before any integration into real enterprise/SaaS or control systems.
+
+## Codex CLI proposal review interop (2026-10-10)
+
+- The reviewed provider registry now accepts only `openai-responses` and `codex-cli`. Both retain the same fixed synthetic task, SHA-256 binding, explicit local approval and AST-only static acceptance.
+- End-to-end tests take a synthetic `codex-cli` proposal through review and staged project generation. This test **does not invoke a real model** and does not import/execute generated source.
+- This is not authenticated approval or a general-purpose production coding Agent review process.

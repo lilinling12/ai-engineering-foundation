@@ -125,3 +125,11 @@ No gates are closed by this audit alone.
   isolated from agent-controlled tools. Codex CLI sandbox flags alone are not
   a sufficient tenant security boundary.
 - Do not claim this is a completed real autonomous coding path or close G1.3.
+
+## G1.5 Guarded live CLI experiment (2026-10-10)
+
+- PR #5 now provides `codex-propose` with explicit paid-inference and local-runtime acknowledgments. It will launch pinned CLI only on an explicitly designated disposable host for a fixed synthetic fixture, with a temporary workspace and minimized inherited environment.
+- The API key is still in Codex's process environment and may be visible to its child tools; neither `read-only` nor an environment flag is an isolation boundary. **Do not use with production data or long-lived secrets.**
+- CI uses fake subprocess calls to test invocation, timeouts, failure handling, proposal allowlists and redacted logs; no real inference was run.
+- PR #6 review registry recognizes the `codex-cli` provider so synthetic proposals can follow local digest review → static acceptance → untrusted staging without executing generated source.
+- Before any real customer code: isolated inference/verification VMs, scoped credential broker, enforced egress and descendant cleanup, authenticated approvals, and independent exact-run proof. Remains unaccepted.

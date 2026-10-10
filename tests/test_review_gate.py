@@ -7,7 +7,10 @@ from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 
 from foundation.__main__ import verify_project, main
-from foundation.harness import DEMO_TASK
+from foundation.harness import DEMO_TASK, load_task, restore_authority, Proposal, Change
+from foundation.__main__ import init_project
+from foundation.codex_live import CodexMetadata
+from foundation.model_gateway import _write_quarantine
 from foundation.model_gateway import OpenAIProposalProvider, propose_fixture
 from foundation.review_gate import (
     ReviewGateError, read_quarantine, record_decision, stage_reviewed_proposal,
@@ -146,6 +149,38 @@ class ReviewGateTests(unittest.TestCase):
             (q / "proposal.json").symlink_to(target)
             with self.assertRaises(ReviewGateError):
                 record_decision(q, digest, "approve", root / "not-created")
+
+    def test_codex_cli_proposal_round_trip_is_static_only(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)
+            sample=root/"sample"
+            init_project("python-service", sample)
+            authority=restore_authority(sample)
+            task=load_task(DEMO_TASK)
+            quarantine=root/"codex-quarantine"
+            _write_quarantine(
+                quarantine, task, authority, CodexMetadata("codex-cli", "test-model"),
+                Proposal("Codex example", (Change("app/greeting.py", GOOD),))
+            )
+            proposal,digest=read_quarantine(quarantine)
+            self.assertEqual(proposal["provider"], "codex-cli")
+            approval=record_decision(quarantine, digest, "approve", root/"approval.json")
+            evidence=stage_reviewed_proposal(quarantine, approval, root/"staged")
+            result=json.loads(evidence.read_text(encoding="utf-8"))
+            self.assertFalse(result["executed"])
+            with self.assertRaises(ValueError):
+                verify_project(root/"staged")
+
+    def test_unknown_proposal_provider_denied(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)
+            quarantine,_=prepare(root)
+            path=quarantine/"proposal.json"
+            obj=json.loads(path.read_text(encoding="utf-8"))
+            obj["provider"]="malicious-adapter"
+            path.write_text(json.dumps(obj), encoding="utf-8")
+            with self.assertRaises(ReviewGateError):
+                read_quarantine(quarantine)
 
     def test_no_verified_human_identity_claim(self):
         with tempfile.TemporaryDirectory() as temp:

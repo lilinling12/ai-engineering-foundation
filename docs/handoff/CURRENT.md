@@ -55,3 +55,10 @@ sandbox, Codex CLI / Claude Code runtime, or independent cryptographic attestati
 - Synced into this PR with preserved Git ancestry. Re-check exact-head checks
   and PR base/head on GitHub after this update.
 - Issue #7 still requires independent approval and main ruleset for any merge.
+
+## G1.5 Code proposal experiment (2026-10-10)
+
+- `codex-propose` is now an explicit opt-in live CLI subprocess entrypoint, but only for a fixed synthetic task in an operator-provided disposable environment.
+- `foundation/review_gate.py` supports quarantined `codex-cli` proposals and retains the local-unattested approval and static-only stage path.
+- CI uses fake process tests and a credential-free real CLI interface check. No actual paid model inference or model-generated code execution verified.
+- G0 through G1.5 remain OPEN. Issue #7 main branch protection and independent review remain blocking.

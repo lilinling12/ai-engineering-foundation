@@ -163,3 +163,9 @@ No gates are closed by this audit alone.
 - Real host probe logged: kvmCapability=blocked, reason=kvm-permission-denied, vmStarted=false. Exact initial probe SHA: f936b8cda50c4209259b9ee87c2ef28466a81f0f.
 - Two 12-check CI workflows passed because probe returned signed? NO: **unsigned recording only**, not VM readiness. Operator strict mode returns nonzero without actual KVM API capability.
 - No automatic KVM privilege grant or Firecracker deployment. Dedicated trusted host, pinned VM binary/kernel/rootfs, independent review and verified guest termination remain open.
+
+## G1.9 trusted-host VMM API probe (2026-10-12)
+
+- Operator-only, explicitly UNJAILED Firecracker smoke program now exists for controlled VMM boot-API verification on a separately trusted disposable KVM machine. It cannot silently auto-provision, widen access, or run user/agent source.
+- Tests mock startup and rejection/cleanup paths. No VM boot happened in GitHub-hosted CI because /dev/kvm is not usable there. A positive VMM API state will not be described as guest acceptance or production security.
+- Required next evidence: external operator-owned host KVM strict preflight, independently pinned Firecracker/Jailer & guest assets, real VMM API log, guest readiness and cleanup proofs, no egress, independent security review. Issue #8 stays blocked and Gate G1.9 NOT CLOSED.

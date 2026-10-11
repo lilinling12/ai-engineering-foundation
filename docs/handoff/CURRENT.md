@@ -93,3 +93,11 @@ sandbox, Codex CLI / Claude Code runtime, or independent cryptographic attestati
 - Both exact-head CI runs were green (12/12 tests): the diagnostic job completed, not the Firecracker acceptance Gate.
 - Added --require-kvm operator mode which fails with code 3 when KVM is unavailable. No CI sudo/ACL permission widening performed.
 - Need trusted KVM host and real guest boot; all Gates remain NOT CLOSED, Issue #7 still blocks independent review / main ruleset.
+
+## 2026-10-12 G1.9 actual VMM boot probe implementation
+
+- PR #6 now contains `foundation/g19_firecracker_smoke.py`: **operator-run only**, defaults deny, requires external trusted disposable Linux KVM host, explicit unjailed-experiment acknowledgment, operator-provided local Firecracker/kernel/ext4 images and SHA-256 digests.
+- Uses fixed Firecracker Unix socket API calls: machine-config → boot-source → read-only rootfs → InstanceStart → GET status; always attempts process-group termination and reaping. No NIC/vsock configuration, model credentials or arbitrary generated code.
+- `VMM API state=Running` is explicitly **not** guest readiness, successful independent acceptance, complete descendant cleanup or Jailer isolation. `vmAdmissionAllowed=false` remains unchanged.
+- CI tests use injected subprocess/API mocks and MUST NOT run Firecracker on GitHub-hosted runners. G1.8 real KVM result remains `blocked/kvm-permission-denied`.
+- Issue #8 is the separate KVM host and actual guest-boot blocker; Issue #7 is still the main Ruleset/independent review blocker. All Gates NOT CLOSED.

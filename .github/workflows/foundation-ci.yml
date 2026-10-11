@@ -93,3 +93,30 @@ jobs:
           for option in --sandbox --ephemeral --ignore-user-config --output-schema --output-last-message; do
             grep -q -- "$option" "${RUNNER_TEMP}/codex-exec-help.txt"
           done
+  g16-synthetic-offline-eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Pull disposable Python runtime before sandboxing
+        run: docker pull python:3.12-slim
+      - name: Run synthetic proposed code through offline isolated evaluation
+        env:
+          FOUNDATION_EPHEMERAL_RUNNER: 'yes'
+        run: |
+          IMAGE_DIGEST="$(docker image inspect --format '{{index .RepoDigests 0}}' python:3.12-slim)"
+          python -m foundation.g16_eval --image "$IMAGE_DIGEST"
+      - name: Upload non-attested synthetic evaluation outcome
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: g16-synthetic-offline-eval
+          path: artifacts/g16-synthetic-offline-eval.json
+          if-no-files-found: ignore

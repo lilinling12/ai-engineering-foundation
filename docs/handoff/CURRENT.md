@@ -62,3 +62,14 @@ sandbox, Codex CLI / Claude Code runtime, or independent cryptographic attestati
 - `foundation/review_gate.py` supports quarantined `codex-cli` proposals and retains the local-unattested approval and static-only stage path.
 - CI uses fake process tests and a credential-free real CLI interface check. No actual paid model inference or model-generated code execution verified.
 - G0 through G1.5 remain OPEN. Issue #7 main branch protection and independent review remain blocking.
+
+## 2026-10-11 G1.6 offline isolation proof (pending CI)
+
+- PR #6 adds a *separate* synthetic-only offline evaluation runtime, without
+  changing G1.2's fixed-fixture execution permission boundary.
+- Uses quarantine → **synthetic test decision** → G1.4 static stage → Docker
+  independent acceptance, plus negative wrong-answer and timeout experiments.
+- No live model, no credentials, no arbitrary repository input or host-side source
+  execution. Do NOT claim multi-tenant sandbox security or authentic human approval.
+- Check exact-head CI and artifact before marking even the synthetic prototype verified.
+- All Gates remain NOT CLOSED; Issue #7 still blocks main protection and independent review.

@@ -133,3 +133,15 @@ No gates are closed by this audit alone.
 - CI uses fake subprocess calls to test invocation, timeouts, failure handling, proposal allowlists and redacted logs; no real inference was run.
 - PR #6 review registry recognizes the `codex-cli` provider so synthetic proposals can follow local digest review → static acceptance → untrusted staging without executing generated source.
 - Before any real customer code: isolated inference/verification VMs, scoped credential broker, enforced egress and descendant cleanup, authenticated approvals, and independent exact-run proof. Remains unaccepted.
+
+## G1.6 experimental trust boundary (2026-10-11)
+
+- Separate CI-only offline evaluator added for synthetic Agent-labelled source; does
+  not change G1.2's fixed trusted-fixture permission registry.
+- Requires successful quarantine and AST-only staging, then actual isolated
+  **Docker** evaluation with immutable acceptance mounted read-only, no network,
+  minimal permissions, and timeout/daemon cleanup checks. Negative wrong answer
+  and timeout samples remain synthetic code-owned fixtures.
+- This is NOT hostile-tenant sandbox validation and contains NO real Codex output.
+- Issue #7, independent review, signed evidence, immutable runtime image provenance
+  and VM isolation remain blocking for any production adoption.

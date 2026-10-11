@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 from foundation.g16_eval import (
     _docker_evaluate, _write_synthetic_module, ALLOWED_WORKSPACES,
-    OfflineCheck,
+    OfflineCheck, smoke,
 )
 from foundation.docker_executor import ExecutionDenied
 from foundation.sandbox import SandboxPolicyError
@@ -19,6 +19,41 @@ DIGEST = "python@sha256:" + "a"*64
 
 
 class SyntheticEvalContractTests(unittest.TestCase):
+    def test_smoke_report_emits_structured_statuses(self):
+        import json
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            expected = [
+                OfflineCheck("pass", 0, True),
+                OfflineCheck("fail", 1, True),
+                OfflineCheck("timeout", None, True),
+            ]
+            with patch.dict(os.environ, {"RUNNER_TEMP": str(root)}, clear=False), \
+                 patch("foundation.g16_eval.ROOT", root), \
+                 patch("foundation.g16_eval.require_disposable_host"), \
+                 patch("foundation.g16_eval._docker_evaluate", side_effect=expected):
+                self.assertEqual(smoke(DIGEST), 0)
+            artifact = json.loads((root/"artifacts/g16-synthetic-offline-eval.json").read_text())
+            self.assertEqual(artifact["result"], "pass")
+            self.assertFalse(artifact["modelInvoked"])
+            self.assertEqual(artifact["checks"]["staged-good"]["status"], "pass")
+            self.assertEqual(artifact["checks"]["negative-wrong-answer"]["status"], "fail")
+            self.assertEqual(artifact["checks"]["negative-timeout"]["status"], "timeout")
+
+    def test_smoke_rejects_failed_expected_checks(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            outcomes = [
+                OfflineCheck("fail", 1, True),
+                OfflineCheck("fail", 1, True),
+                OfflineCheck("timeout", None, True),
+            ]
+            with patch.dict(os.environ, {"RUNNER_TEMP": str(root)}, clear=False), \
+                 patch("foundation.g16_eval.ROOT", root), \
+                 patch("foundation.g16_eval.require_disposable_host"), \
+                 patch("foundation.g16_eval._docker_evaluate", side_effect=outcomes):
+                self.assertEqual(smoke(DIGEST), 1)
+
     def test_refuse_outside_host_and_unreviewed_paths(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

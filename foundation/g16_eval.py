@@ -177,7 +177,7 @@ def smoke(image_digest: str) -> int:
     dest.write_text(json.dumps(evidence, indent=2, ensure_ascii=False)+"\n", encoding="utf-8")
     print(json.dumps({
         "result": evidence["result"],
-        "checks": {k:v["status"] for k,v in (("staged-good",good), ("wrong-answer",bad),("timeout",hang))},
+        "checks": {k:v.status for k,v in (("staged-good",good), ("wrong-answer",bad),("timeout",hang))},
         "modelInvoked": False,
     }))
     return 0 if passed else 1

@@ -86,7 +86,6 @@ def _docker_evaluate(
             delete = subprocess.run(
                 ["docker", "rm", "-f", name], stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL, timeout=15, check=False,
-                    env=client_env,
                 env=client_env,
             )
             if delete.returncode == 0:
@@ -95,7 +94,7 @@ def _docker_evaluate(
                 inspected = subprocess.run(
                     ["docker", "container", "inspect", name],
                     stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
-                    timeout=15, check=False,
+                    timeout=15, check=False, env=client_env,
                 )
                 details = inspected.stderr.decode("utf-8", errors="replace")
                 cleanup_confirmed = (

@@ -151,3 +151,9 @@ No gates are closed by this audit alone.
 - G1.6 Docker subprocesses now receive only explicit PATH/HOME/LANG, not runner/model/cloud secrets, proxy settings, or remote Docker context. Docker home is private and temporary.
 - Exact Python source, extra-import and external acceptance-oracle preflight added, with -S preventing implicit sitecustomize startup. All verified samples remain code-owned synthetic fixtures; no real Agent-generated code is admitted.
 - G1.7 is NOT a VM sandbox; Firecracker+jailer is a research candidate for real hostile-code validation, not deployed. Unsigned evidence, mutable initial image tag, Issue #7 and independent review remain open.
+
+## G1.8 CI host qualification check (2026-10-12)
+
+- PR #6 adds actual /dev/kvm character-device open and KVM_GET_API_VERSION=12 ioctl diagnostic, with isolated mock tests for absent, inaccessible, unsuitable device and bad API responses.
+- Job success means the probe ran; artifact `kvm.result` reports availability vs blocked. No Firecracker VM, guest kernel, jailer, rootfs, isolation attestation or inference occurred.
+- Dedicated host qualification and independent security review remain required; do not promote GH runner observation to production host admission.

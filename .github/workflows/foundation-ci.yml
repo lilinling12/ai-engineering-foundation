@@ -120,3 +120,24 @@ jobs:
           name: g16-synthetic-offline-eval
           path: artifacts/g16-synthetic-offline-eval.json
           if-no-files-found: ignore
+  g18-kvm-capability-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Query /dev/kvm KVM_GET_API_VERSION (no VM, no secrets)
+        run: python -m foundation.g18_kvm_probe
+      - name: Upload unsigned capability observation even when KVM unavailable
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: g18-kvm-host-preflight
+          path: artifacts/g18-kvm-host-preflight.json
+          if-no-files-found: error

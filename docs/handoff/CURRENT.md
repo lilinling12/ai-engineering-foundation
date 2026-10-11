@@ -79,3 +79,10 @@ sandbox, Codex CLI / Claude Code runtime, or independent cryptographic attestati
 - Added `foundation/g17_boundary.py`: exact built-in synthetic candidate/oracle checks and explicit, minimal Docker-client process environment. G1.6 Python command disables `site` processing with `-S`.
 - This guards existing Docker-only synthetic CI, not a genuine VM-grade multi-tenant runtime; no model output admitted. No actual Firecracker runtime provisioned.
 - Check latest exact-head CI, then document independent reviewer and Issue #7 blockers. All Gates remain unclosed.
+
+## 2026-10-12 G1.8 host capability probe (pending exact-head CI)
+
+- Separate `g18-kvm-capability-probe` job checks actual /dev/kvm character device and Linux KVM_GET_API_VERSION ioctl rather than trusting environmental markers.
+- Even when the job itself passes, the artifact is authoritative for `kvm.result`; KVM unavailable and microVM absent must be reported independently.
+- No Firecracker/jailer installed and no KVM-backed guest boot attempted; vmAdmissionAllowed remains false. G1.8 not closed.
+- Confirm artifact outcome and exact-head CI from GitHub; Issue #7 remains open and all PR merges require independent review.

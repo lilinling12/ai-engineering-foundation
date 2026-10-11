@@ -25,6 +25,7 @@ from .model_gateway import _write_quarantine
 from .codex_live import CodexMetadata
 from .review_gate import read_quarantine, record_decision, stage_reviewed_proposal
 from .sandbox import SandboxPolicy, SandboxPolicyError, plan_docker_run
+from .g17_boundary import WRONG, HANG, require_synthetic_candidate, require_reviewed_oracle, isolated_docker_env
 
 ROOT = Path(__file__).resolve().parent.parent
 ACCEPTANCE = ROOT / "tests" / "fixtures" / "offline-sandbox" / "acceptance"
@@ -50,10 +51,13 @@ def _docker_evaluate(
             workspace.parent != sandbox_root or workspace.name not in ALLOWED_WORKSPACES or
             workspace.resolve(strict=True).parent != sandbox_root.resolve(strict=True)):
         raise SandboxPolicyError("Only an immediate synthetic CI workspace is allowed")
-    if not ACCEPTANCE.is_dir() or ACCEPTANCE.is_symlink():
-        raise SandboxPolicyError("Independent acceptance oracle unavailable")
+    require_synthetic_candidate(workspace)
+    require_reviewed_oracle()
+    client_env = isolated_docker_env(sandbox_root)
     policy = SandboxPolicy(image_digest=image_digest, timeout_seconds=seconds)
     cmd = list(plan_docker_run(workspace, "python-eval", policy, acceptance_dir=ACCEPTANCE))
+    # -S disables implicit site/sitecustomize processing for this synthetic test.
+    cmd.insert(cmd.index("-B") + 1, "-S")
     name = "foundation-g16-" + uuid.uuid4().hex[:20]
     cmd[2:2] = ["--name", name]
     exit_code = None
@@ -62,6 +66,7 @@ def _docker_evaluate(
     try:
         proc = subprocess.Popen(
             cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            env=client_env,
         )
         try:
             exit_code = proc.wait(timeout=seconds)
@@ -81,6 +86,8 @@ def _docker_evaluate(
             delete = subprocess.run(
                 ["docker", "rm", "-f", name], stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL, timeout=15, check=False,
+                    env=client_env,
+                env=client_env,
             )
             if delete.returncode == 0:
                 cleanup_confirmed = True
@@ -138,12 +145,12 @@ def smoke(image_digest: str) -> int:
         if not json.loads(stage_evidence.read_text(encoding="utf-8")).get("executed") is False:
             raise SandboxPolicyError("Staged evidence must report no execution")
         good = _docker_evaluate(staged, base, image_digest)
-        bad_source = 'def greet(name: str) -> str:\n    return "Wrong, " + name\n'
+        bad_source = WRONG
         bad = _docker_evaluate(
             _write_synthetic_module(base, "bad-candidate", bad_source),
             base, image_digest,
         )
-        hang_source = 'import time\ntime.sleep(30)\ndef greet(name: str) -> str:\n    return "Hello, " + name\n'
+        hang_source = HANG
         hang = _docker_evaluate(
             _write_synthetic_module(base, "hang-candidate", hang_source),
             base, image_digest, seconds=3,

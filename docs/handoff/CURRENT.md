@@ -73,3 +73,9 @@ sandbox, Codex CLI / Claude Code runtime, or independent cryptographic attestati
   execution. Do NOT claim multi-tenant sandbox security or authentic human approval.
 - Check exact-head CI and artifact before marking even the synthetic prototype verified.
 - All Gates remain NOT CLOSED; Issue #7 still blocks main protection and independent review.
+
+## G1.7 — synthetic boundary hardening (2026-10-12)
+
+- Added `foundation/g17_boundary.py`: exact built-in synthetic candidate/oracle checks and explicit, minimal Docker-client process environment. G1.6 Python command disables `site` processing with `-S`.
+- This guards existing Docker-only synthetic CI, not a genuine VM-grade multi-tenant runtime; no model output admitted. No actual Firecracker runtime provisioned.
+- Check latest exact-head CI, then document independent reviewer and Issue #7 blockers. All Gates remain unclosed.

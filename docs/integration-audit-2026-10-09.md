@@ -145,3 +145,9 @@ No gates are closed by this audit alone.
 - This is NOT hostile-tenant sandbox validation and contains NO real Codex output.
 - Issue #7, independent review, signed evidence, immutable runtime image provenance
   and VM isolation remain blocking for any production adoption.
+
+## G1.7 client-credential and synthetic-source boundary (2026-10-12)
+
+- G1.6 Docker subprocesses now receive only explicit PATH/HOME/LANG, not runner/model/cloud secrets, proxy settings, or remote Docker context. Docker home is private and temporary.
+- Exact Python source, extra-import and external acceptance-oracle preflight added, with -S preventing implicit sitecustomize startup. All verified samples remain code-owned synthetic fixtures; no real Agent-generated code is admitted.
+- G1.7 is NOT a VM sandbox; Firecracker+jailer is a research candidate for real hostile-code validation, not deployed. Unsigned evidence, mutable initial image tag, Issue #7 and independent review remain open.

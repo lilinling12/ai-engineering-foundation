@@ -10,6 +10,10 @@ from foundation.g16_eval import (
     OfflineCheck, smoke,
 )
 from foundation.docker_executor import ExecutionDenied
+from foundation.__main__ import init_project
+from foundation.g17_boundary import (
+    GOOD, require_synthetic_candidate, require_reviewed_oracle, isolated_docker_env,
+)
 from foundation.sandbox import SandboxPolicyError
 
 HOSTED = {"GITHUB_ACTIONS": "true", "RUNNER_ENVIRONMENT": "github-hosted",
@@ -19,6 +23,47 @@ DIGEST = "python@sha256:" + "a"*64
 
 
 class SyntheticEvalContractTests(unittest.TestCase):
+    def _staged(self, base: Path) -> Path:
+        project = base / "staged"
+        init_project("python-service", project)
+        (project/"app/greeting.py").write_text(GOOD, encoding="utf-8")
+        (project/".foundation/UNTRUSTED_DO_NOT_EXECUTE").write_text("untrusted")
+        (project/".foundation/stage-evidence.json").write_text(
+            __import__("json").dumps({
+                "contract":"foundation.static-stage/v0",
+                "result":"static-accepted-not-executed", "executed":False,
+            }))
+        return project
+
+    def test_reject_source_tampering_and_extra_import(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)
+            project=self._staged(root)
+            require_synthetic_candidate(project)
+            require_reviewed_oracle()
+            (project/"app/greeting.py").write_text("print('untrusted')",encoding="utf-8")
+            with self.assertRaises(SandboxPolicyError):
+                require_synthetic_candidate(project)
+            (project/"app/greeting.py").write_text(GOOD,encoding="utf-8")
+            (project/"sitecustomize.py").write_text("print('inject')",encoding="utf-8")
+            with self.assertRaises(SandboxPolicyError):
+                require_synthetic_candidate(project)
+
+    def test_explicit_docker_env_never_inherits_secrets_or_remote_daemon(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)
+            with patch.dict(os.environ, {
+                "OPENAI_API_KEY":"test-key", "GITHUB_TOKEN":"token",
+                "ACTIONS_RUNTIME_TOKEN":"actions-token",
+                "AWS_SECRET_ACCESS_KEY":"aws-key",
+                "HTTPS_PROXY":"http://attacker.invalid:80",
+                "DOCKER_HOST":"tcp://attacker.invalid:2375",
+            },clear=True):
+                env=isolated_docker_env(root)
+            self.assertEqual(set(env),{"PATH","HOME","LANG"})
+            self.assertNotIn("attacker.invalid",str(env))
+            self.assertFalse(any("TOKEN" in k or "KEY" in k for k in env))
+
     def test_smoke_report_emits_structured_statuses(self):
         import json
         with tempfile.TemporaryDirectory() as td:
@@ -57,8 +102,7 @@ class SyntheticEvalContractTests(unittest.TestCase):
     def test_refuse_outside_host_and_unreviewed_paths(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
-            stage = root / "staged"
-            stage.mkdir()
+            stage = self._staged(root)
             with patch.dict(os.environ, {}, clear=True):
                 with self.assertRaises(ExecutionDenied):
                     _docker_evaluate(stage, root, DIGEST)
@@ -83,8 +127,7 @@ class SyntheticEvalContractTests(unittest.TestCase):
     def test_nonroot_readonly_offline_and_cleanup_command(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
-            stage = root / "staged"
-            stage.mkdir()
+            stage = self._staged(root)
             proc = MagicMock()
             proc.wait.return_value = 0
             delete = subprocess.CompletedProcess(["docker","rm"],0)
@@ -101,6 +144,9 @@ class SyntheticEvalContractTests(unittest.TestCase):
             self.assertIn("--user=65534:65534", args)
             self.assertIn("--pids-limit", args)
             self.assertIn("--pull=never", args)
+            self.assertIn("-S",args)
+            self.assertEqual(set(launched.call_args.kwargs["env"]),{"PATH","HOME","LANG"})
+            self.assertEqual(set(cleanup.call_args.kwargs["env"]),{"PATH","HOME","LANG"})
             self.assertIn("--mount", args)
             self.assertFalse(any("docker.sock" in arg for arg in args))
             self.assertEqual(cleanup.call_args.args[0][:3],["docker","rm","-f"])
@@ -110,8 +156,7 @@ class SyntheticEvalContractTests(unittest.TestCase):
     def test_timeout_forcibly_removes_daemon_container(self):
         with tempfile.TemporaryDirectory() as td:
             root=Path(td)
-            stage=root/"staged"
-            stage.mkdir()
+            stage=self._staged(root)
             proc=MagicMock()
             proc.wait.side_effect=[subprocess.TimeoutExpired("docker",3),None]
             remove=subprocess.CompletedProcess(["docker","rm"],0)
@@ -127,8 +172,7 @@ class SyntheticEvalContractTests(unittest.TestCase):
     def test_uncertain_daemon_cleanup_fails_closed(self):
         with tempfile.TemporaryDirectory() as td:
             root=Path(td)
-            stage=root/"staged"
-            stage.mkdir()
+            stage=self._staged(root)
             proc=MagicMock()
             proc.wait.return_value=0
             remove=subprocess.CompletedProcess(["docker","rm"],1)

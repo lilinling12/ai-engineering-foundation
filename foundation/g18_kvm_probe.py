@@ -100,10 +100,19 @@ def write_preflight() -> Path:
                       "apiVersion": probe.api_version, "vmStarted": False}))
     return dest
 
-def main() -> int:
-    write_preflight()
-    # Job SUCCESS means the preflight was recorded, not that /dev/kvm works!
-    return 0
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Probe Linux KVM capability without starting a VM")
+    parser.add_argument("--require-kvm", action="store_true",
+                        help="Exit nonzero unless /dev/kvm and KVM API are available")
+    opts = parser.parse_args(argv)
+    artifact = write_preflight()
+    if not opts.require_kvm:
+        # Green recording job is NOT proof a KVM host was admitted.
+        return 0
+    result = json.loads(artifact.read_text(encoding="utf-8"))
+    return 0 if result["kvm"]["result"] == "available" else 3
 
 if __name__ == "__main__":
     sys.exit(main())

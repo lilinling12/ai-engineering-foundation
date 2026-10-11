@@ -157,3 +157,9 @@ No gates are closed by this audit alone.
 - PR #6 adds actual /dev/kvm character-device open and KVM_GET_API_VERSION=12 ioctl diagnostic, with isolated mock tests for absent, inaccessible, unsuitable device and bad API responses.
 - Job success means the probe ran; artifact `kvm.result` reports availability vs blocked. No Firecracker VM, guest kernel, jailer, rootfs, isolation attestation or inference occurred.
 - Dedicated host qualification and independent security review remain required; do not promote GH runner observation to production host admission.
+
+## G1.8 KVM access finding (2026-10-12)
+
+- Real host probe logged: kvmCapability=blocked, reason=kvm-permission-denied, vmStarted=false. Exact initial probe SHA: f936b8cda50c4209259b9ee87c2ef28466a81f0f.
+- Two 12-check CI workflows passed because probe returned signed? NO: **unsigned recording only**, not VM readiness. Operator strict mode returns nonzero without actual KVM API capability.
+- No automatic KVM privilege grant or Firecracker deployment. Dedicated trusted host, pinned VM binary/kernel/rootfs, independent review and verified guest termination remain open.

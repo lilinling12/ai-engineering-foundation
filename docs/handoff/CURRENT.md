@@ -86,3 +86,10 @@ sandbox, Codex CLI / Claude Code runtime, or independent cryptographic attestati
 - Even when the job itself passes, the artifact is authoritative for `kvm.result`; KVM unavailable and microVM absent must be reported independently.
 - No Firecracker/jailer installed and no KVM-backed guest boot attempted; vmAdmissionAllowed remains false. G1.8 not closed.
 - Confirm artifact outcome and exact-head CI from GitHub; Issue #7 remains open and all PR merges require independent review.
+
+## 2026-10-12 G1.8 exact-run outcome
+
+- Actual GitHub-hosted KVM probe for f936b8cd: result=blocked, reason=kvm-permission-denied, apiVersion=null, microVmStarted=false.
+- Both exact-head CI runs were green (12/12 tests): the diagnostic job completed, not the Firecracker acceptance Gate.
+- Added --require-kvm operator mode which fails with code 3 when KVM is unavailable. No CI sudo/ACL permission widening performed.
+- Need trusted KVM host and real guest boot; all Gates remain NOT CLOSED, Issue #7 still blocks independent review / main ruleset.

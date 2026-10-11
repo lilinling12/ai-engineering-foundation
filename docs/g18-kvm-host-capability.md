@@ -45,3 +45,17 @@ No inference, paid call or microVM execution is performed by this check.
 References:
 - Firecracker getting started: https://github.com/firecracker-microvm/firecracker/blob/main/docs/getting-started.md
 - Firecracker production host: https://github.com/firecracker-microvm/firecracker/blob/main/docs/prod-host-setup.md
+
+## Observed GitHub-hosted KVM result (2026-10-12)
+
+Both exact-head workflow runs for PR #6 at f936b8cd passed the capability *recording* job. A real runner log reported:
+
+    {"kvmCapability":"blocked","reason":"kvm-permission-denied","apiVersion":null,"vmStarted":false}
+
+This is a host permission blocker, not proof of absent CPU virtualization. Do not automatically grant PR-controlled CI access to /dev/kvm or claim a booted Firecracker guest.
+
+On a separately trusted operator-controlled Linux host, use the strict command:
+
+    python -m foundation.g18_kvm_probe --require-kvm
+
+Exit code 3 means KVM is blocked. Exit 0 means the device/API check succeeded only; no microVM, Jailer, kernel or rootfs has been run. The next step requires actual trusted host provisioning and separately approved VM execution.

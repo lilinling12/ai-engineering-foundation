@@ -10,7 +10,7 @@ from unittest.mock import Mock, patch
 
 from foundation.g18_kvm_probe import (
     EXPECTED_KVM_API_VERSION, KVM_DEVICE, KVM_GET_API_VERSION,
-    KvmCapability, probe_kvm, write_preflight,
+    KvmCapability, probe_kvm, write_preflight, main,
 )
 
 CHAR = os.stat_result((stat.S_IFCHR | 0o660,) + (0,) * 9)
@@ -69,6 +69,19 @@ class KvmHostProbeTests(unittest.TestCase):
                                     ioctl=query, close_device=close)
                 self.assertEqual(outcome.result, "blocked")
                 close.assert_called_once_with(5)
+
+    def test_strict_mode_returns_failure_if_kvm_is_blocked(self):
+        for cap, wanted in (
+            (KvmCapability("blocked", "kvm-permission-denied", None, True), 3),
+            (KvmCapability("available", "kvm-api-version-confirmed", 12, True), 0),
+        ):
+            with self.subTest(kvm=cap.result), tempfile.TemporaryDirectory() as td, \
+                 patch("foundation.g18_kvm_probe.ROOT", Path(td)), \
+                 patch("foundation.g18_kvm_probe.probe_kvm", return_value=cap):
+                self.assertEqual(main(["--require-kvm"]), wanted)
+                record = json.loads((Path(td)/"artifacts/g18-kvm-host-preflight.json").read_text())
+                self.assertEqual(record["kvm"]["result"], cap.result)
+                self.assertFalse(record["vmAdmissionAllowed"])
 
     def test_written_evidence_cannot_claim_vm_execution(self):
         with tempfile.TemporaryDirectory() as td, \

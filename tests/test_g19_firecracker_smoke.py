@@ -139,6 +139,23 @@ class G19FirecrackerTests(unittest.TestCase):
         self.assertTrue(reaped)
         proc.wait.assert_called_once()
 
+    def test_strict_guest_start_refuses_unverified_kernel_config(self):
+        with tempfile.TemporaryDirectory() as td, \
+             patch.dict(os.environ, {OPERATOR_FLAG: OPERATOR_VALUE}):
+            assets = sample_assets(Path(td))
+            runner = Mock(side_effect=AssertionError("should never spawn"))
+            outcome = run_probe(assets, explicit=True, require_guest_ready=True,
+                                capability=lambda: KVM_OK, runner=runner)
+            self.assertEqual(outcome.reason, "kernel-config-required-for-guest-readiness")
+            runner.assert_not_called()
+            result=run_probe(assets, explicit=True, require_guest_ready=True,
+                             capability=lambda:KVM_OK, runner=runner,
+                             kernel_config=assets.kernel,
+                             kernel_config_sha256=assets.kernel_sha256,
+                             config_checker=Mock(side_effect=ValueError("no drivers")))
+            self.assertEqual(result.reason, "kernel-config-compatibility-denied")
+            runner.assert_not_called()
+
     def test_guest_readiness_mode_denies_missing_marker_even_if_vmm_running(self):
         with tempfile.TemporaryDirectory() as td, \
              patch.dict(os.environ, {OPERATOR_FLAG: OPERATOR_VALUE}):
@@ -161,6 +178,9 @@ class G19FirecrackerTests(unittest.TestCase):
                     capability=lambda: KVM_OK,
                     serial_checker=marker,
                     stopper=lambda _: (True,True),
+                    kernel_config=assets.kernel,
+                    kernel_config_sha256=assets.kernel_sha256,
+                    config_checker=lambda *args: None,
                 )
             self.assertEqual(outcome.status, "blocked")
             self.assertEqual(outcome.reason, "guest-readiness-marker-not-observed")
@@ -187,8 +207,11 @@ class G19FirecrackerTests(unittest.TestCase):
                     assets, explicit=True, require_guest_ready=True,
                     runner=start, request=fake_api, capability=lambda:KVM_OK,
                     serial_checker=ready,stopper=lambda _:(True,True),
+                    kernel_config=assets.kernel, kernel_config_sha256=assets.kernel_sha256,
+                    config_checker=lambda *args: None,
                 )
             self.assertEqual(result.status,"guest-marker-observed")
+            self.assertTrue(result.kernel_config_preflight_passed)
             self.assertTrue(result.guest_serial_ready_observed)
             self.assertFalse(result.guest_boot_verified)
             self.assertIn("foundation.probe_token=",observed[0])
@@ -210,6 +233,8 @@ class G19FirecrackerTests(unittest.TestCase):
                     runner=start, request=lambda sock,m,p,pl: {"state":"Running"} if p=="/" else None,
                     capability=lambda:KVM_OK, serial_checker=lambda path,nonce:True,
                     stopper=lambda _: (False,True),
+                    kernel_config=assets.kernel, kernel_config_sha256=assets.kernel_sha256,
+                    config_checker=lambda *args: None,
                 )
             self.assertEqual(outcome.status,"blocked")
             self.assertEqual(outcome.reason,"cleanup-unverified")

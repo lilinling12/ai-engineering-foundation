@@ -120,3 +120,15 @@ sandbox, Codex CLI / Claude Code runtime, or independent cryptographic attestati
 - `foundation/g21_build_guest.py` builds a real static ELF and no-root ext4 image using gcc/readelf/mke2fs/debugfs/e2fsck, and publishes SHA256 of source/init/rootfs. The CI artifact is unsigned and its toolchain unpinned.
 - Dedicated G2.1 job must actually compile/init self-test/fsck; check latest exact-head CI. Guest kernel remains external; no KVM Guest boot, Jailer or attestation.
 - Issue #8 KVM host and Issue #7 independent main Ruleset/review remain OPEN. No Gate closed.
+
+## G2.2 kernel/rootfs boot compatibility checkpoint (2026-10-12)
+
+- Added x86_64 ELF/sha256/Kconfig gate with required built-in ext4, virtio-blk,
+  MMIO, procfs, ELF-init, KVM guest, ACPI/PCI and serial console support.
+- Strict G1.9 Guest readiness operator path now requires separately supplied
+  kernel companion Kconfig + SHA256, and boot args explicitly select ext4 and
+  /sbin/init; default Guest start denies a missing config.
+- Operator-supplied Kconfig is **not** authenticated as originating from
+  vmlinux; real Guest boot and pinned kernel provenance remain external.
+- Check exact-head CI. Issue #7 independent review and Issue #8 KVM host
+  remain OPEN. No VM success or Gate closure.

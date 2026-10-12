@@ -27,11 +27,12 @@ from typing import Callable
 from .__main__ import ROOT
 from .g18_kvm_probe import probe_kvm, KvmCapability
 from .g20_guest_serial import checked_boot_args, guest_marker_observed
+from .g22_kernel_compat import inspect_kernel_config, KernelPreflightDenied
 
 HEX = re.compile(r"^[0-9a-f]{64}$")
 OPERATOR_FLAG = "FOUNDATION_TRUSTED_DISPOSABLE_KVM_HOST"
 OPERATOR_VALUE = "G19_UNJAILED_EXPERIMENT_ONLY"
-BOOT_ARGS = "console=ttyS0 reboot=k panic=1 pci=off root=/dev/vda ro"
+BOOT_ARGS = "console=ttyS0 reboot=k panic=1 pci=off root=/dev/vda rootfstype=ext4 init=/sbin/init ro"
 POLL_SECONDS = 0.1
 
 @dataclass(frozen=True)
@@ -53,6 +54,7 @@ class Trial:
     process_reaped: bool
     process_group_kill_issued: bool
     guest_serial_ready_observed: bool = False
+    kernel_config_preflight_passed: bool = False
 
 
 class TrialDenied(ValueError):
@@ -160,6 +162,9 @@ def run_probe(
     stopper: Callable = _stop_group,
     require_guest_ready: bool = False,
     serial_checker: Callable[[Path, str], bool] = guest_marker_observed,
+    kernel_config: Path | None = None,
+    kernel_config_sha256: str | None = None,
+    config_checker: Callable = inspect_kernel_config,
 ) -> Trial:
     if not explicit or os.environ.get(OPERATOR_FLAG) != OPERATOR_VALUE:
         return Trial("blocked", "operator-authorization-required", None, False, False, True, False)
@@ -170,6 +175,18 @@ def run_probe(
         validate_assets(assets)
     except (TrialDenied, OSError, UnicodeError):
         return Trial("blocked", "untrusted-or-invalid-assets", 12, False, False, True, False)
+    config_checked = False
+    if require_guest_ready:
+        if kernel_config is None or kernel_config_sha256 is None:
+            return Trial("blocked", "kernel-config-required-for-guest-readiness",
+                         12, False, False, True, False)
+        try:
+            config_checker(assets.kernel, assets.kernel_sha256,
+                           kernel_config, kernel_config_sha256)
+        except (KernelPreflightDenied, OSError, ValueError):
+            return Trial("blocked", "kernel-config-compatibility-denied",
+                         12, False, False, True, False)
+        config_checked = True
 
     vmm_running = False
     reason = "vmm-launch-failed"
@@ -245,7 +262,7 @@ def run_probe(
         status = "vmm-start-observed" if complete else "blocked"
     if not terminated or not reaped:
         reason = "cleanup-unverified"
-    return Trial(status, reason, 12, vmm_running, False, reaped, terminated, guest_ready)
+    return Trial(status, reason, 12, vmm_running, False, reaped, terminated, guest_ready, config_checked)
 
 
 def write_report(assets: Assets, result: Trial) -> Path:
@@ -265,6 +282,7 @@ def write_report(assets: Assets, result: Trial) -> Path:
         "vmAdmissionAllowed": False,
         "guestBootVerified": False,
         "guestReadinessMarkerObserved": result.guest_serial_ready_observed,
+        "kernelConfigPreflightPassed": result.kernel_config_preflight_passed,
         "guestReadinessAttested": False,
         "productionIsolationValidated": False,
     }
@@ -280,6 +298,8 @@ def main(argv: list[str] | None = None) -> int:
         parser.add_argument("--" + key, type=Path, required=True)
         parser.add_argument("--" + key + "-sha256", required=True)
     parser.add_argument("--acknowledge-unjailed-experiment", action="store_true")
+    parser.add_argument("--kernel-config", type=Path)
+    parser.add_argument("--kernel-config-sha256")
     parser.add_argument("--require-guest-ready", action="store_true",
                         help="Require bounded, nonce-correlated serial marker from trusted Guest init")
     opts = parser.parse_args(argv)
@@ -288,7 +308,9 @@ def main(argv: list[str] | None = None) -> int:
         "kernel_sha256", "rootfs_sha256",
     )))
     result = run_probe(assets, explicit=opts.acknowledge_unjailed_experiment,
-                       require_guest_ready=opts.require_guest_ready)
+                       require_guest_ready=opts.require_guest_ready,
+                       kernel_config=opts.kernel_config,
+                       kernel_config_sha256=opts.kernel_config_sha256)
     report = write_report(assets, result)
     print(json.dumps({"status": result.status, "reason": result.reason,
                       "guestBootVerified": False, "report": str(report)}))

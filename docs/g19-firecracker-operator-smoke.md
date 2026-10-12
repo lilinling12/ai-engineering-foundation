@@ -102,3 +102,21 @@ even after the marker is observed.
 This code **does not package or verify a working Guest image** and is not
 executed against a KVM host in GitHub CI. It cannot replace a later jailed,
 cryptographically attested independent Guest acceptance/termination test.
+
+## G2.2 x86_64 kernel admission (2026-10-12)
+
+The strict `--require-guest-ready` operator smoke now additionally requires
+`--kernel-config /opt/reviewed/linux.config` and
+`--kernel-config-sha256 <independently-checked-64-hex>`.
+Before launching the VMM, it rejects a missing or invalid companion Kconfig,
+non-x86_64 ELF kernel, unknown SHA256, or modules/disabled options for the
+minimal ACPI + VirtIO-MMIO + ext4 synthetic Guest profile.
+The fixed boot args now explicitly specify `rootfstype=ext4 init=/sbin/init`.
+
+A Kconfig file is **NOT provably bound to the compiled vmlinux** by this check.
+The operator must verify source/build provenance independently. Supported
+kernel *versions* and reviewed guest settings are not inferred from a filename.
+This remains an unjailed, operator-only, no-network synthetic experiment and
+not an authorized arbitrary-code sandbox.
+
+See `docs/g22-kernel-compatibility.md` and official Firecracker kernel policy.

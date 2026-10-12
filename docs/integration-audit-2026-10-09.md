@@ -186,3 +186,14 @@ No gates are closed by this audit alone.
 - CI-only static C PID1 builds a real ELF, validates synthetic readiness challenge, constructs populated ext4 rootfs and checks ext4 integrity without privileged mount or KVM. Output manifest contains SHA256 but is *unsigned/unattested*.
 - No actual Firecracker boot, independently pinned kernel, Jailer, verified Guest acceptance or real model code. Host compiler and e2fsprogs toolchain still need supply-chain pinning before any trusted deployment.
 - Keep true KVM validation and guest boot in Issue #8; human/Ruleset merge acceptance remains Issue #7.
+
+## G2.2 kernel admission and boot args (2026-10-12)
+
+- Real Firecracker upstream policy includes Linux 6.18 Guest support and x86_64
+  ACPI/PCI+VirtIO requirements. G1.9 formerly checked only ELF magic.
+- Synthetic strict Guest-ready experiment now requires SHA256-bound companion
+  Kconfig and built-in driver checks before launching Firecracker, plus explicit
+  rootfstype=ext4 and init=/sbin/init arguments.
+- **Claim limitation:** attacker-chosen matching Kconfig + kernel file hashes do
+  not establish provenance or actual kernel compatibility; independent build
+  record, signed approval and real Guest serial startup still absent.

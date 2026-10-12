@@ -180,3 +180,9 @@ No gates are closed by this audit alone.
   Guest authentication, guest code correctness, Jailer isolation or attestation.
 - No Firecracker execution in CI; source-only mocked lifecycle and parser tests.
 - Dedicated KVM host and reviewed Guest init/rootfs remain blocking Issue #8.
+
+## G2.1 synthetic Guest image build (2026-10-12)
+
+- CI-only static C PID1 builds a real ELF, validates synthetic readiness challenge, constructs populated ext4 rootfs and checks ext4 integrity without privileged mount or KVM. Output manifest contains SHA256 but is *unsigned/unattested*.
+- No actual Firecracker boot, independently pinned kernel, Jailer, verified Guest acceptance or real model code. Host compiler and e2fsprogs toolchain still need supply-chain pinning before any trusted deployment.
+- Keep true KVM validation and guest boot in Issue #8; human/Ruleset merge acceptance remains Issue #7.

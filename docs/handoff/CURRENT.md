@@ -113,3 +113,10 @@ sandbox, Codex CLI / Claude Code runtime, or independent cryptographic attestati
   independently built/provisioned. Guest boot attestation remains false.
 - Reviewers must see exact-head CI for this change. Issue #8 trusted host and
   Issue #7 merge governance remain unresolved; no Gate closed.
+
+## G2.1 minimal synthetic Guest image build (2026-10-12)
+
+- Added `guest/synthetic-init.c` (static Linux PID1 nonce-to-serial readiness); host-only self-test is **not** Guest boot.
+- `foundation/g21_build_guest.py` builds a real static ELF and no-root ext4 image using gcc/readelf/mke2fs/debugfs/e2fsck, and publishes SHA256 of source/init/rootfs. The CI artifact is unsigned and its toolchain unpinned.
+- Dedicated G2.1 job must actually compile/init self-test/fsck; check latest exact-head CI. Guest kernel remains external; no KVM Guest boot, Jailer or attestation.
+- Issue #8 KVM host and Issue #7 independent main Ruleset/review remain OPEN. No Gate closed.

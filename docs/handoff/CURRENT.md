@@ -101,3 +101,15 @@ sandbox, Codex CLI / Claude Code runtime, or independent cryptographic attestati
 - `VMM API state=Running` is explicitly **not** guest readiness, successful independent acceptance, complete descendant cleanup or Jailer isolation. `vmAdmissionAllowed=false` remains unchanged.
 - CI tests use injected subprocess/API mocks and MUST NOT run Firecracker on GitHub-hosted runners. G1.8 real KVM result remains `blocked/kvm-permission-denied`.
 - Issue #8 is the separate KVM host and actual guest-boot blocker; Issue #7 is still the main Ruleset/independent review blocker. All Gates NOT CLOSED.
+
+## G2.0 synthetic Guest readiness challenge (2026-10-12)
+
+- PR #6 extends the operator-only G1.9 Firecracker VMM probe with
+  `--require-guest-ready`: per-run random challenge appended to Guest kernel
+  command line, bounded exact-line serial marker observation, and fail-closed
+  readiness timeout/cleanup behavior.
+- Tests use a fake VMM and synthetic serial output. No actual Guest boot on KVM.
+- The challenge is **not authentication** and no Guest image/init has been
+  independently built/provisioned. Guest boot attestation remains false.
+- Reviewers must see exact-head CI for this change. Issue #8 trusted host and
+  Issue #7 merge governance remain unresolved; no Gate closed.

@@ -61,3 +61,44 @@ test execution, VM security isolation, or complete descendant cleanup.
 
 References: https://github.com/firecracker-microvm/firecracker/blob/main/docs/getting-started.md
 and https://github.com/firecracker-microvm/firecracker/blob/main/docs/api_requests/actions.md .
+
+## G2.0 optional trusted-Guest serial readiness challenge (2026-10-12)
+
+The operator-run command now accepts `--require-guest-ready` to **fail closed**
+when the Firecracker VMM API reports `Running` but the trusted synthetic
+Guest does not emit an exact per-boot readiness line within the deadline.
+
+A cryptographically random 128-bit *correlation challenge* is appended to
+the kernel boot arguments as `foundation.probe_token=<32 lowercase hex>`.
+The **operator-owned, independently reviewed Guest init** must read
+`/proc/cmdline`, finish its trusted userspace startup checks, then print the
+exact following line by writing to the **serial console** (`/dev/console`
+or `ttyS0`), followed by newline:
+
+```text
+FOUNDATION_GUEST_READY_V1 <the-32-hex-challenge>
+```
+
+Example operator command after independently preparing this synthetic Guest:
+
+```bash
+python -m foundation.g19_firecracker_smoke \
+  --firecracker /opt/reviewed/firecracker --firecracker-sha256 <sha256> \
+  --kernel /opt/reviewed/vmlinux --kernel-sha256 <sha256> \
+  --rootfs /opt/reviewed/rootfs.ext4 --rootfs-sha256 <sha256> \
+  --acknowledge-unjailed-experiment --require-guest-ready
+```
+
+The challenge is **not a secret or authentication**. A malicious Guest can echo
+it, kernel command-line arguments can be read by the Guest, and the VMM or its
+stdout can simulate output. The protocol is a useful synthetic readiness
+correlation check only. The log remains in an automatically deleted private
+directory, limited to 256 KiB; raw kernel/Guest output and the challenge
+never enter the evidence artifact. The evidence records only
+`guestReadinessMarkerObserved` and `guestReadinessAttested=false`.
+`guestBootVerified=false` and `vmAdmissionAllowed=false` remain unchanged
+even after the marker is observed.
+
+This code **does not package or verify a working Guest image** and is not
+executed against a KVM host in GitHub CI. It cannot replace a later jailed,
+cryptographically attested independent Guest acceptance/termination test.

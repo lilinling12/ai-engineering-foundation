@@ -169,3 +169,14 @@ No gates are closed by this audit alone.
 - Operator-only, explicitly UNJAILED Firecracker smoke program now exists for controlled VMM boot-API verification on a separately trusted disposable KVM machine. It cannot silently auto-provision, widen access, or run user/agent source.
 - Tests mock startup and rejection/cleanup paths. No VM boot happened in GitHub-hosted CI because /dev/kvm is not usable there. A positive VMM API state will not be described as guest acceptance or production security.
 - Required next evidence: external operator-owned host KVM strict preflight, independently pinned Firecracker/Jailer & guest assets, real VMM API log, guest readiness and cleanup proofs, no egress, independent security review. Issue #8 stays blocked and Gate G1.9 NOT CLOSED.
+
+## G2.0 Guest readiness / VMM status distinction (2026-10-12)
+
+- G1.9 can be run in strict Guest readiness mode, requiring an exact bounded
+  nonce-correlated serial log line after the VMM reports Running. Missing marker,
+  abnormal process exit or uncertain cleanup must fail the operator experiment.
+- No raw serial output or nonce is written to the unsigned report; only a boolean
+  `guestReadinessMarkerObserved`. A forged marker is possible and this is not
+  Guest authentication, guest code correctness, Jailer isolation or attestation.
+- No Firecracker execution in CI; source-only mocked lifecycle and parser tests.
+- Dedicated KVM host and reviewed Guest init/rootfs remain blocking Issue #8.

@@ -14,6 +14,7 @@ import json
 import os
 from pathlib import Path
 import re
+import secrets
 import signal
 import socket
 import stat
@@ -25,6 +26,7 @@ from typing import Callable
 
 from .__main__ import ROOT
 from .g18_kvm_probe import probe_kvm, KvmCapability
+from .g20_guest_serial import checked_boot_args, guest_marker_observed
 
 HEX = re.compile(r"^[0-9a-f]{64}$")
 OPERATOR_FLAG = "FOUNDATION_TRUSTED_DISPOSABLE_KVM_HOST"
@@ -50,6 +52,7 @@ class Trial:
     guest_boot_verified: bool
     process_reaped: bool
     process_group_kill_issued: bool
+    guest_serial_ready_observed: bool = False
 
 
 class TrialDenied(ValueError):
@@ -155,6 +158,8 @@ def run_probe(
     request: Callable = firecracker_api,
     capability: Callable[[], KvmCapability] = probe_kvm,
     stopper: Callable = _stop_group,
+    require_guest_ready: bool = False,
+    serial_checker: Callable[[Path, str], bool] = guest_marker_observed,
 ) -> Trial:
     if not explicit or os.environ.get(OPERATOR_FLAG) != OPERATOR_VALUE:
         return Trial("blocked", "operator-authorization-required", None, False, False, True, False)
@@ -168,7 +173,8 @@ def run_probe(
 
     vmm_running = False
     reason = "vmm-launch-failed"
-    started = False
+    guest_ready = False
+    challenge = secrets.token_hex(16) if require_guest_ready else None
     terminated = False
     reaped = True
     with tempfile.TemporaryDirectory(prefix="g19-fc-") as td:
@@ -178,11 +184,16 @@ def run_probe(
         if len(os.fsencode(sock)) >= 106:
             return Trial("blocked", "socket-path-too-long", 12, False, False, True, False)
         proc = None
+        # Serial console is stored only in this private temporary directory.
+        # No raw log, nonce or Guest output is copied into the evidence artifact.
+        serial_path = root / "guest-serial.log"
+        serial_log = serial_path.open("wb") if require_guest_ready else None
         try:
             proc = runner(
                 [str(assets.firecracker), "--api-sock", str(sock)],
                 env=_clean_env(root / "home"), cwd=root,
-                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                stdin=subprocess.DEVNULL,
+                stdout=serial_log if serial_log is not None else subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL, start_new_session=True,
             )
             deadline = time.monotonic() + 8
@@ -195,7 +206,8 @@ def run_probe(
             sequence = (
                 ("PUT", "/machine-config", {"vcpu_count": 1, "mem_size_mib": 128, "smt": False}),
                 ("PUT", "/boot-source", {"kernel_image_path": str(assets.kernel),
-                                        "boot_args": BOOT_ARGS}),
+                                        "boot_args": checked_boot_args(BOOT_ARGS, challenge)
+                                        if challenge is not None else BOOT_ARGS}),
                 ("PUT", "/drives/rootfs", {"drive_id": "rootfs",
                                           "path_on_host": str(assets.rootfs),
                                           "is_root_device": True, "is_read_only": True}),
@@ -203,21 +215,37 @@ def run_probe(
             )
             for method, resource, payload in sequence:
                 request(sock, method, resource, payload)
-            started = True
             if proc.poll() is not None:
                 raise TrialDenied("VMM terminated on boot")
             info = request(sock, "GET", "/", None)
             vmm_running = isinstance(info, dict) and info.get("state") == "Running"
             reason = "vmm-api-running-guest-unverified" if vmm_running else "vmm-api-not-running"
+            if vmm_running and require_guest_ready:
+                # A reviewed synthetic Guest init must echo the challenge on ttyS0
+                # only after it completes its own startup checks.
+                deadline = time.monotonic() + 8
+                while time.monotonic() < deadline and proc.poll() is None:
+                    if serial_checker(serial_path, challenge):
+                        guest_ready = True
+                        break
+                    time.sleep(POLL_SECONDS)
+                reason = ("guest-serial-marker-observed-not-attested" if guest_ready
+                          else "guest-readiness-marker-not-observed")
         except (OSError, ValueError, http.client.HTTPException, TimeoutError):
             reason = "vmm-api-or-boot-error"
         finally:
+            if serial_log is not None:
+                serial_log.close()
             if proc is not None:
                 terminated, reaped = stopper(proc)
-    status = "vmm-start-observed" if vmm_running and terminated and reaped else "blocked"
+    complete = vmm_running and terminated and reaped
+    if require_guest_ready:
+        status = "guest-marker-observed" if complete and guest_ready else "blocked"
+    else:
+        status = "vmm-start-observed" if complete else "blocked"
     if not terminated or not reaped:
         reason = "cleanup-unverified"
-    return Trial(status, reason, 12, vmm_running, False, reaped, terminated)
+    return Trial(status, reason, 12, vmm_running, False, reaped, terminated, guest_ready)
 
 
 def write_report(assets: Assets, result: Trial) -> Path:
@@ -236,6 +264,8 @@ def write_report(assets: Assets, result: Trial) -> Path:
         "jailerUsed": False,
         "vmAdmissionAllowed": False,
         "guestBootVerified": False,
+        "guestReadinessMarkerObserved": result.guest_serial_ready_observed,
+        "guestReadinessAttested": False,
         "productionIsolationValidated": False,
     }
     dest = ROOT / "artifacts" / "g19-firecracker-vmm-smoke.json"
@@ -250,16 +280,20 @@ def main(argv: list[str] | None = None) -> int:
         parser.add_argument("--" + key, type=Path, required=True)
         parser.add_argument("--" + key + "-sha256", required=True)
     parser.add_argument("--acknowledge-unjailed-experiment", action="store_true")
+    parser.add_argument("--require-guest-ready", action="store_true",
+                        help="Require bounded, nonce-correlated serial marker from trusted Guest init")
     opts = parser.parse_args(argv)
     assets = Assets(*(getattr(opts, key) for key in (
         "firecracker", "kernel", "rootfs", "firecracker_sha256",
         "kernel_sha256", "rootfs_sha256",
     )))
-    result = run_probe(assets, explicit=opts.acknowledge_unjailed_experiment)
+    result = run_probe(assets, explicit=opts.acknowledge_unjailed_experiment,
+                       require_guest_ready=opts.require_guest_ready)
     report = write_report(assets, result)
     print(json.dumps({"status": result.status, "reason": result.reason,
                       "guestBootVerified": False, "report": str(report)}))
-    return 0 if result.status == "vmm-start-observed" else 3
+    accepted = "guest-marker-observed" if opts.require_guest_ready else "vmm-start-observed"
+    return 0 if result.status == accepted else 3
 
 if __name__ == "__main__":
     sys.exit(main())

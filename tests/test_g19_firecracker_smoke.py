@@ -139,6 +139,81 @@ class G19FirecrackerTests(unittest.TestCase):
         self.assertTrue(reaped)
         proc.wait.assert_called_once()
 
+    def test_guest_readiness_mode_denies_missing_marker_even_if_vmm_running(self):
+        with tempfile.TemporaryDirectory() as td, \
+             patch.dict(os.environ, {OPERATOR_FLAG: OPERATOR_VALUE}):
+            assets = sample_assets(Path(td))
+            proc = Mock()
+            proc.pid = 52732
+            proc.poll.return_value = None
+            def start(argv, **kwargs):
+                Path(argv[2]).touch()
+                self.assertNotEqual(kwargs["stdout"], __import__("subprocess").DEVNULL)
+                return proc
+            marker = Mock(return_value=False)
+            with patch("foundation.g19_firecracker_smoke.Path.is_socket", return_value=True), \
+                 patch("foundation.g19_firecracker_smoke.time.monotonic",
+                       side_effect=[0.0, 0.0, 10.0]):
+                outcome = run_probe(
+                    assets, explicit=True, require_guest_ready=True,
+                    runner=start,
+                    request=lambda sock, method, path, payload: {"state":"Running"} if path=="/" else None,
+                    capability=lambda: KVM_OK,
+                    serial_checker=marker,
+                    stopper=lambda _: (True,True),
+                )
+            self.assertEqual(outcome.status, "blocked")
+            self.assertEqual(outcome.reason, "guest-readiness-marker-not-observed")
+            self.assertFalse(outcome.guest_serial_ready_observed)
+
+    def test_guest_marker_mode_requires_cleanup_and_never_claims_attestation(self):
+        with tempfile.TemporaryDirectory() as td, \
+             patch.dict(os.environ, {OPERATOR_FLAG: OPERATOR_VALUE}):
+            assets = sample_assets(Path(td))
+            proc=Mock()
+            proc.poll.return_value=None
+            proc.pid=52733
+            observed=[]
+            def start(argv, **kwargs):
+                Path(argv[2]).touch()
+                return proc
+            def fake_api(sock, method, path, payload):
+                if path == "/boot-source":
+                    observed.append(payload["boot_args"])
+                return {"state":"Running"} if path=="/" else None
+            ready=Mock(return_value=True)
+            with patch("foundation.g19_firecracker_smoke.Path.is_socket", return_value=True):
+                result = run_probe(
+                    assets, explicit=True, require_guest_ready=True,
+                    runner=start, request=fake_api, capability=lambda:KVM_OK,
+                    serial_checker=ready,stopper=lambda _:(True,True),
+                )
+            self.assertEqual(result.status,"guest-marker-observed")
+            self.assertTrue(result.guest_serial_ready_observed)
+            self.assertFalse(result.guest_boot_verified)
+            self.assertIn("foundation.probe_token=",observed[0])
+            self.assertEqual(len(ready.call_args.args[1]),32)
+
+    def test_unverified_cleanup_blocks_even_with_guest_marker(self):
+        with tempfile.TemporaryDirectory() as td, \
+             patch.dict(os.environ, {OPERATOR_FLAG: OPERATOR_VALUE}):
+            assets = sample_assets(Path(td))
+            proc=Mock()
+            proc.poll.return_value=None
+            proc.pid=52734
+            def start(argv, **kwargs):
+                Path(argv[2]).touch()
+                return proc
+            with patch("foundation.g19_firecracker_smoke.Path.is_socket", return_value=True):
+                outcome=run_probe(
+                    assets, explicit=True, require_guest_ready=True,
+                    runner=start, request=lambda sock,m,p,pl: {"state":"Running"} if p=="/" else None,
+                    capability=lambda:KVM_OK, serial_checker=lambda path,nonce:True,
+                    stopper=lambda _: (False,True),
+                )
+            self.assertEqual(outcome.status,"blocked")
+            self.assertEqual(outcome.reason,"cleanup-unverified")
+
     def test_firecracker_api_rejects_nonreviewed_actions(self):
         with self.assertRaises(TrialDenied):
             firecracker_api(Path("/tmp/socket"),"PUT","/network-interfaces/net1",{})

@@ -197,3 +197,9 @@ No gates are closed by this audit alone.
 - **Claim limitation:** attacker-chosen matching Kconfig + kernel file hashes do
   not establish provenance or actual kernel compatibility; independent build
   record, signed approval and real Guest serial startup still absent.
+
+## G2.3 actual upstream kernel candidate inventory (2026-10-12)
+
+- New CI retrieves public Firecracker CI x86_64 6.18 ELF + .config objects from S3 under a dated object prefix, bounds downloads, rejects redirects/environment proxies, computes actual SHA256 and tests essential built-in config flags.
+- Only data **metadata/unsigned hash inventory** persists. Dynamic public S3 objects can change and are not release-certified; no VM admissibility or code execution permitted. Missing source or incompatible kernel fails the inventory, not other historical gates.
+- Never use discovered binary with G1.9 until an independent operator pins hashes, reviews provenance, supplies a trusted host and performs real KVM boot with expiry/cleanup controls.

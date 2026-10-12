@@ -132,3 +132,10 @@ sandbox, Codex CLI / Claude Code runtime, or independent cryptographic attestati
   vmlinux; real Guest boot and pinned kernel provenance remain external.
 - Check exact-head CI. Issue #7 independent review and Issue #8 KVM host
   remain OPEN. No VM success or Gate closure.
+
+## G2.3 official x86_64 Linux 6.18 kernel discovery (2026-10-12)
+
+- Added `foundation/g23_kernel_inventory.py` and no-secret official S3 listing/download CI, retrieving actual candidate kernel and companion .config hashes from a dated Firecracker CI prefix.
+- Candidate is **discovery-only**: S3 CI latest objects are not immutable release trust or verified matching kernel build provenance. The process never boots, executes or uploads the kernel ELF; only an unsigned inventory report is saved.
+- G1.9 still requires separately operator-reviewed pinned binaries and KVM Guest readiness. Do not reinterpret green inventory as production-ready supply chain.
+- Check exact-head G23 CI for actual candidate and repo Issue #8 for trusted host. Issue #7 review/protection still blocks merging. All Gates remain OPEN.

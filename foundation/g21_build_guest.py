@@ -32,7 +32,7 @@ def _invoke(args: list[str]) -> subprocess.CompletedProcess:
     return subprocess.run(
         args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
         timeout=90, check=False,
-        env={"PATH": os.defpath, "LANG": "C", "HOME": "/nonexistent"},
+        env={"PATH": "/usr/bin:/bin:/usr/sbin:/sbin", "LANG": "C", "HOME": "/nonexistent"},
     )
 
 
@@ -127,7 +127,7 @@ def main() -> int:
         print(json.dumps({"result": "rootfs-built-not-booted", "manifest": str(output)}))
         return 0
     except (GuestBuildError, OSError, subprocess.TimeoutExpired) as exc:
-        print(json.dumps({"result": "blocked", "reason": type(exc).__name__}))
+        print(json.dumps({"result": "blocked", "reason": str(exc) if isinstance(exc, GuestBuildError) else type(exc).__name__}))
         return 3
 
 

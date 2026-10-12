@@ -79,6 +79,14 @@ def build_guest(destination: Path) -> Path:
                              args + " foundation.probe_token=" + TEST_NONCE])
         if duplicate.returncode == 0:
             raise GuestBuildError("Guest init accepted duplicated token")
+        for invalid_args in (
+            "console=ttyS0",
+            "foundation.probe_token=" + TEST_NONCE.upper(),
+            "foundation.probe_token=" + TEST_NONCE[:-1],
+        ):
+            check_invalid = _invoke([str(init), "--self-test", invalid_args])
+            if check_invalid.returncode == 0:
+                raise GuestBuildError("Guest init accepted malformed boot arguments")
         image = base / "rootfs.ext4"
         with image.open("wb") as fh:
             fh.truncate(ROOTFS_BYTES)
@@ -94,6 +102,14 @@ def build_guest(destination: Path) -> Path:
             response = _invoke(["debugfs", "-R", "stat " + path, str(image)])
             if response.returncode or b"Inode:" not in response.stdout:
                 raise GuestBuildError("Rootfs inode missing: " + path)
+            if path in ("/dev/console", "/dev/null") and (
+                    b"Type: character special" not in response.stdout):
+                raise GuestBuildError("Rootfs device is not a character special inode: " + path)
+        # Detect a broken or unexpected copied ELF, not just an inode name.
+        restored = base / "exported-init"
+        dump = _invoke(["debugfs", "-R", "dump /sbin/init " + str(restored), str(image)])
+        if dump.returncode or not restored.is_file() or _sha256(restored) != _sha256(init):
+            raise GuestBuildError("Guest init within ext4 differs from compiled ELF")
         if _invoke(["e2fsck", "-fn", str(image)]).returncode not in (0, 1):
             raise GuestBuildError("Rootfs integrity check failed")
         manifest = {

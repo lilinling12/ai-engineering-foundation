@@ -203,3 +203,13 @@ No gates are closed by this audit alone.
 - New CI retrieves public Firecracker CI x86_64 6.18 ELF + .config objects from S3 under a dated object prefix, bounds downloads, rejects redirects/environment proxies, computes actual SHA256 and tests essential built-in config flags.
 - Only data **metadata/unsigned hash inventory** persists. Dynamic public S3 objects can change and are not release-certified; no VM admissibility or code execution permitted. Missing source or incompatible kernel fails the inventory, not other historical gates.
 - Never use discovered binary with G1.9 until an independent operator pins hashes, reviews provenance, supplies a trusted host and performs real KVM boot with expiry/cleanup controls.
+
+## G2.3 official CI real kernel SHA256 receipt (2026-10-12)
+
+- Authenticated GitHub Actions logs/artifact were inspected: two real public
+  S3 downloads matched the same kernel ELF (x86_64 Linux 6.18.51, 27,882,928 B),
+  kernel SHA256 `946e164b5a50675341a5d0a6ac2b516711806267ed0c73e17c6289c97aad81ea`,
+  companion config SHA256 `47194037099c5ca0645c7b0530c40c2d40033cfa067bd20b6f5367bcd5206b58`.
+- Exact object pair pinned in repo and rechecked by fixed-key CI. Still
+  unsigned, discovered by PR-controlled CI and not genuine independently
+  attested source/build provenance; no KVM Guest has run. Issue #8 blocks boot.

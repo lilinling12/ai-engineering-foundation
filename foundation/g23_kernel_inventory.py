@@ -189,20 +189,74 @@ def inventory(client=None) -> dict:
     }
 
 
-def main() -> int:
+def _verified_pinned_receipt(client=None, receipt_path: Path | None = None) -> dict:
+    """Re-download immutable *named* S3 objects and fail on any hash drift.
+
+    Source identity and checksums are only data integrity here, NOT signatures.
+    The pinned receipt was first seen in a GitHub-hosted unsigned CI artifact.
+    """
+    path = receipt_path or (ROOT / "docs" / "g23-pinned-kernel-receipt.json")
+    try:
+        expected = json.loads(path.read_text(encoding="utf-8"))
+        key = expected["kernelKey"]
+        config_key = expected["configKey"]
+        if (not KERNEL_KEY.fullmatch(key) or config_key != key + ".config" or
+                expected["buildPrefix"] != key.split("x86_64/")[0] or
+                not re.fullmatch(r"[0-9a-f]{64}", expected["kernelSha256"]) or
+                not re.fullmatch(r"[0-9a-f]{64}", expected["configSha256"])):
+            raise InventoryError("Kernel pin receipt shape invalid")
+        client = client if client is not None else _client()
+        config_raw = _read_bounded(
+            client, BASE + "/" + urllib.parse.quote(config_key, safe="/"), MAX_CONFIG)
+        config_digest = hashlib.sha256(config_raw).hexdigest()
+        kernel_digest, kernel_bytes, hdr = _stream_sha256(client, key)
+        if (config_digest != expected["configSha256"] or
+                kernel_digest != expected["kernelSha256"] or
+                kernel_bytes != expected["kernelBytes"]):
+            raise InventoryError("Public CI kernel bytes no longer match pinned receipt")
+        compatible, missing = _config_requirements(config_raw)
+        correct_elf = (len(hdr) >= 20 and hdr[:6] == b"\x7fELF\x02\x01"
+                       and int.from_bytes(hdr[18:20], "little") == 62)
+        if not compatible or not correct_elf:
+            raise InventoryError("Pinned kernel/config no longer meet reviewed profile")
+        return {
+            **expected,
+            "assessment": "pinned-SHA256-object-bytes-confirmed-NOT-attested-NOT-booted",
+            "recheckedAt": datetime.now(timezone.utc).isoformat(),
+            "pinVerified": True,
+            "kernelBuildProvenanceAuthenticated": False,
+            "operatorApproved": False,
+            "guestBootVerified": False, "vmAdmissionAllowed": False,
+            "missingRequiredOptions": missing,
+        }
+    except (OSError, KeyError, ValueError, TypeError) as exc:
+        if isinstance(exc, InventoryError):
+            raise
+        raise InventoryError("Kernel receipt unreadable/invalid") from exc
+
+
+def main(argv=None) -> int:
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--pinned", action="store_true",
+                        help="Verify exactly the already-received SHA256-pinned 6.18.51 object pair")
+    opts = parser.parse_args(argv)
     target = ROOT / "artifacts" / "g23-official-kernel-inventory.json"
     target.parent.mkdir(parents=True, exist_ok=True)
     try:
-        record = inventory()
+        record = _verified_pinned_receipt() if opts.pinned else inventory()
         target.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")
         print(json.dumps({
             "assessment": record["assessment"],
             "kernelKey": record["kernelKey"],
             "kernelSha256": record["kernelSha256"],
-            "requiredConfigBuiltIn": record["requiredConfigBuiltIn"],
+            "pinVerified": record.get("pinVerified", False),
+            "requiredConfigBuiltIn": record.get("requiredConfigBuiltIn", True),
             "guestBootVerified": False,
         }))
-        return 0 if record["requiredConfigBuiltIn"] and record["x86_64Elf"] else 3
+        return 0 if (record.get("pinVerified", False)
+                     if opts.pinned else
+                     record["requiredConfigBuiltIn"] and record["x86_64Elf"]) else 3
     except (InventoryError, OSError, ValueError, ET.ParseError,
             urllib.error.URLError) as exc:
         target.write_text(json.dumps({

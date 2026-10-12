@@ -22,3 +22,19 @@ The KVM runner and independent security review remain unavailable; Issue #8
 and Issue #7 are still open. DO NOT treat a green discovery job as VM safety.
 
 Official source: https://github.com/firecracker-microvm/firecracker/blob/main/docs/getting-started.md
+
+## Exact upstream candidate pinned after real CI discovery (2026-10-12)
+
+Two independent push/PR CI discovery jobs identified the same official public
+`vmlinux-6.18.51` (27,882,928 bytes), and a real ZIP artifact contained its
+full pair of SHA-256s. The committed receipt is
+`docs/g23-pinned-kernel-receipt.json`. GitHub Actions now runs
+`python -m foundation.g23_kernel_inventory --pinned`, which fetches exactly
+those two named S3 objects and refuses hash drift or missing drivers.
+
+This is **data-integrity pinning only**. Both hashes were initially determined
+by our own unsigned CI run and are not third-party signatures, build attestations
+or independent review. No kernel ELF is persisted in this repo; no automatic
+Firecracker guest trial, code execution, Jailer admission or external spend.
+An operator must independently establish provenance and approve any actual
+G1.9 boot experiment. Never substitute a new 'latest' kernel automatically.

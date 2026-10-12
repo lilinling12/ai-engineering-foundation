@@ -139,3 +139,14 @@ sandbox, Codex CLI / Claude Code runtime, or independent cryptographic attestati
 - Candidate is **discovery-only**: S3 CI latest objects are not immutable release trust or verified matching kernel build provenance. The process never boots, executes or uploads the kernel ELF; only an unsigned inventory report is saved.
 - G1.9 still requires separately operator-reviewed pinned binaries and KVM Guest readiness. Do not reinterpret green inventory as production-ready supply chain.
 - Check exact-head G23 CI for actual candidate and repo Issue #8 for trusted host. Issue #7 review/protection still blocks merging. All Gates remain OPEN.
+
+## G2.3 pinned official 6.18.51 kernel receipt (2026-10-12)
+
+- Two actual G23 inventory runs identified the same Firecracker upstream CI S3
+  x86_64 `vmlinux-6.18.51`; kernel SHA256 `946e164b5a50...`,
+  config SHA256 `47194037099c...`. Full exact keys and sizes are committed
+  in `docs/g23-pinned-kernel-receipt.json`.
+- Latest G23 CI switches from 'discover latest build' to **verify exact
+  receipt hashes**; changes to public upstream bytes cause the CI job to fail.
+- This is NOT independently verified kernel provenance or an operational
+  Guest boot. Issue #8 actual KVM host and Issue #7 main governance OPEN.

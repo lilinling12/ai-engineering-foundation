@@ -189,7 +189,10 @@ jobs:
         with:
           python-version: '3.12'
       - name: Discover actual Firecracker official CI kernel candidate
-        run: python -m foundation.g23_kernel_inventory
+        run: python -m foundation.g23_kernel_inventory --pinned
+      - name: Ensure pinned bytes were confirmed without VM claims
+        run: |
+          python -c 'import json,pathlib; j=json.loads(pathlib.Path("artifacts/g23-official-kernel-inventory.json").read_text()); assert j["pinVerified"] is True and j["guestBootVerified"] is False and j["operatorApproved"] is False'
       - name: Upload unsigned candidate inventory only (NEVER boot discovered image)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

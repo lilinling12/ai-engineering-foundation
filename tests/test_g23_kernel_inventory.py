@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 
 from foundation.g23_kernel_inventory import (
     BASE, KERNEL_KEY, InventoryError, _list, _config_requirements,
-    inventory, _stream_sha256,
+    inventory, _stream_sha256, _verified_pinned_receipt,
 )
 from foundation.g22_kernel_compat import GUEST_REQUIRED
 
@@ -69,6 +69,35 @@ class KernelInventoryTests(unittest.TestCase):
         self.assertFalse(result["operatorPinned"])
         self.assertFalse(result["kernelBuildProvenanceAuthenticated"])
         self.assertFalse(result["vmAdmissionAllowed"])
+
+    def test_verify_exact_pinned_receipt_fails_on_hash_drift(self):
+        import json
+        from urllib.parse import urlencode
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td)
+            build="firecracker-ci/20261012-test/"
+            key=build+"x86_64/vmlinux-6.18.51"
+            elf=bytearray(256)
+            elf[:6]=b"\x7fELF\x02\x01"
+            elf[18:20]=(62).to_bytes(2,"little")
+            cfg=("".join(k+"=y\n" for k in sorted(GUEST_REQUIRED))).encode()
+            receipt=root/"receipt.json"
+            record={
+                "buildPrefix":build,"kernelKey":key,"configKey":key+".config",
+                "kernelSha256":hashlib.sha256(elf).hexdigest(),
+                "configSha256":hashlib.sha256(cfg).hexdigest(),
+                "kernelBytes":len(elf), "vmAdmissionAllowed":False,
+            }
+            receipt.write_text(json.dumps(record))
+            ok=FakeClient({BASE+"/"+key:bytes(elf),BASE+"/"+key+".config":cfg})
+            report=_verified_pinned_receipt(ok,receipt)
+            self.assertTrue(report["pinVerified"])
+            self.assertFalse(report["operatorApproved"])
+            self.assertFalse(report["guestBootVerified"])
+            record["kernelSha256"]="0"*64
+            receipt.write_text(json.dumps(record))
+            with self.assertRaises(InventoryError):
+                _verified_pinned_receipt(ok,receipt)
 
     def test_reject_unreviewed_keys_and_disabled_driver(self):
         self.assertFalse(KERNEL_KEY.fullmatch("firecracker-ci/latest/x86_64/vmlinux-6.18.4"))

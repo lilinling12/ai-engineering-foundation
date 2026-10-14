@@ -122,16 +122,21 @@ def _terminate(proc: subprocess.Popen) -> bool:
 def observe_guest(args: tuple[str, ...], serial: Path, nonce: str, *,
                   runner=subprocess.Popen, stopper=_terminate, limit=RUN_LIMIT_SECONDS):
     home = serial.parent / "qemu-home"
-    home.mkdir(mode=0o700)
+    if home.is_symlink():
+        raise BootError("Unsafe QEMU home")
+    home.mkdir(mode=0o700, exist_ok=True)
+    if home.is_symlink() or not home.is_dir():
+        raise BootError("Unsafe QEMU home")
     proc = None
     seen = False
     clean = False
     reason = "start-failed"
     try:
-        proc = runner(list(args), cwd=serial.parent, start_new_session=True,
-                      stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                      stderr=subprocess.DEVNULL,
-                      env={"PATH": "/usr/bin:/bin", "HOME": str(home), "LANG": "C"})
+        with (serial.parent / "qemu-stderr.log").open("wb") as err_file:
+            proc = runner(list(args), cwd=serial.parent, start_new_session=True,
+                          stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                          stderr=err_file,
+                          env={"PATH": "/usr/bin:/bin", "HOME": str(home), "LANG": "C"})
         deadline = time.monotonic() + limit
         while time.monotonic() < deadline:
             if guest_marker_observed(serial, nonce):
@@ -151,6 +156,31 @@ def observe_guest(args: tuple[str, ...], serial: Path, nonce: str, *,
             clean = stopper(proc)
     return seen, clean, reason
 
+
+
+def classify_qemu_failure(serial: Path, stderr: Path) -> str:
+    """Categorize only known failures; never include raw logs in evidence."""
+    chunks = []
+    for path in (serial, stderr):
+        try:
+            if not path.is_symlink() and path.is_file():
+                with path.open("rb") as fh:
+                    chunks.append(fh.read(128 * 1024))
+        except OSError:
+            pass
+    logs = b"\n".join(chunks).lower()
+    for category, pattern in (
+        ("guest-kernel-panic", b"kernel panic"),
+        ("root-filesystem-mount-error", b"vfs: unable to mount root fs"),
+        ("guest-init-execution-error", b"failed to execute /sbin/init"),
+        ("guest-init-missing", b"no working init found"),
+        ("qemu-pvh-kernel-load-error", b"error loading uncompressed kernel"),
+        ("qemu-sandbox-error", b"seccomp"),
+        ("qemu-drive-error", b"could not open"),
+    ):
+        if pattern in logs:
+            return category
+    return "none-classified"
 
 def main(argv: list[str] | None = None) -> int:
     import argparse
@@ -179,6 +209,7 @@ def main(argv: list[str] | None = None) -> int:
         "cleanupConfirmed": False,
         "result": "blocked",
         "reason": "preflight-unavailable",
+        "safeFailureClass": "preflight",
     }
     output = ROOT / "artifacts" / "g24-qemu-tcg-guest-boot.json"
     output.parent.mkdir(exist_ok=True)
@@ -204,6 +235,8 @@ def main(argv: list[str] | None = None) -> int:
                 "cleanupConfirmed": cleaned,
                 "result": "pass" if seen and cleaned else "blocked",
                 "reason": reason if cleaned else "cleanup-unverified",
+                "safeFailureClass": ("none" if seen else classify_qemu_failure(
+                    serial, root / "qemu-stderr.log")),
             })
     except (OSError, ValueError, BootError, InventoryError,
             subprocess.TimeoutExpired) as ex:

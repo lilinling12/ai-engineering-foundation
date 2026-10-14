@@ -37,6 +37,18 @@ class QemuGuestTests(unittest.TestCase):
             with self.assertRaises(BootError):
                 fixed_qemu_args(q,k,d,serial,"b"*32)
 
+    def test_safe_failure_classes_do_not_include_raw_guest_logs(self):
+        from foundation.g24_qemu_tcg import classify_qemu_failure
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td)
+            serial=root/"serial"
+            serial.write_text("VFS: Unable to mount root fs on unknown-block(0,0)\n")
+            self.assertEqual(classify_qemu_failure(serial,root/"stderr"),
+                             "root-filesystem-mount-error")
+            serial.write_text("benign boot log\n")
+            self.assertEqual(classify_qemu_failure(serial,root/"stderr"),
+                             "none-classified")
+
     def test_real_marker_and_independent_cleanup_required(self):
         with tempfile.TemporaryDirectory() as td:
             root=Path(td)

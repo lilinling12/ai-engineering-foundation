@@ -213,3 +213,9 @@ No gates are closed by this audit alone.
 - Exact object pair pinned in repo and rechecked by fixed-key CI. Still
   unsigned, discovered by PR-controlled CI and not genuine independently
   attested source/build provenance; no KVM Guest has run. Issue #8 blocks boot.
+
+## G2.4 distinct QEMU TCG functional boot evidence (2026-10-15)
+
+- Introduced fixed-code-only, no-network QEMU `microvm` + unprivileged TCG software-emulated Linux Guest boot with SHA256-pinned G2.3 ELF and freshly built G2.1 ext4 rootfs, exact serial readiness challenge, bounded timeout and process-group cleanup.
+- QEMU apt package not yet immutable toolchain-pinned and fixed Firecracker upstream CI kernel is unsigned. CI is ephemeral but does not independently attest guest/host isolation. Absolutely no AI-generated source or customer code is accepted.
+- Must not call G2.4 a Firecracker /dev/kvm boot; Issue #8 remains open for real microVM, Jailer, network and process lifecycle security.

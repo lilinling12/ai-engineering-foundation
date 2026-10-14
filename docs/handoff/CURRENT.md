@@ -150,3 +150,10 @@ sandbox, Codex CLI / Claude Code runtime, or independent cryptographic attestati
   receipt hashes**; changes to public upstream bytes cause the CI job to fail.
 - This is NOT independently verified kernel provenance or an operational
   Guest boot. Issue #8 actual KVM host and Issue #7 main governance OPEN.
+
+## G2.4 actual Linux Guest compatibility boot under QEMU TCG (2026-10-15)
+
+- Added separate credential-free GitHub Actions job `g24-real-qemu-tcg-guest-boot`: installs QEMU on disposable hosted runner, SHA256-downloads G2.3 fixed public kernel and rebuilds G2.1 static Linux PID1/rootfs, boots them with QEMU `microvm`, software `TCG` (not KVM), read-only VirtIO-MMIO rootfs and no networking.
+- Per-run nonce must appear in the real Guest serial console; controller enforces time budget, kills/reaps QEMU group and records only no-secrets metadata/hash evidence.
+- A green G2.4 means real **QEMU** Guest userspace started; it is NOT Firecracker, KVM, Jailer, runtime admission, guest attestation or model-execution security.
+- CI initial design/test pending; check exact SHA job result and real log before any success claim. Issue #8 real Firecracker KVM host and Issue #7 branch protection/review remain BLOCKED.

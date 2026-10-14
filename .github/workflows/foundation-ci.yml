@@ -200,3 +200,29 @@ jobs:
           name: g23-official-kernel-inventory
           path: artifacts/g23-official-kernel-inventory.json
           if-no-files-found: error
+  g24-real-qemu-tcg-guest-boot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Install software-only QEMU from Ubuntu (not KVM)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends qemu-system-x86
+          /usr/bin/qemu-system-x86_64 --version
+      - name: Actually boot fixed synthetic Linux Guest in QEMU TCG
+        run: python -m foundation.g24_qemu_tcg --github-hosted-synthetic-only
+      - name: Upload unsigned startup evidence even if boot fails
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: g24-real-qemu-tcg-guest-boot
+          path: artifacts/g24-qemu-tcg-guest-boot.json
+          if-no-files-found: error

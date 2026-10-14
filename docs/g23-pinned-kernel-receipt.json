@@ -1,0 +1,16 @@
+{
+  "contract": "foundation.firecracker-kernel-receipt/v0",
+  "status": "candidate-hash-pinned-NOT-signed-NOT-approved",
+  "source": "firecracker-upstream-public-ci-s3",
+  "collectedFromGitHubRun": "https://github.com/lilinling12/ai-engineering-foundation/actions/runs/38271517935",
+  "buildPrefix": "firecracker-ci/20261008-40f3a4819490-0/",
+  "kernelKey": "firecracker-ci/20261008-40f3a4819490-0/x86_64/vmlinux-6.18.51",
+  "kernelSha256": "946e164b5a50675341a5d0a6ac2b516711806267ed0c73e17c6289c97aad81ea",
+  "kernelBytes": 27882928,
+  "configKey": "firecracker-ci/20261008-40f3a4819490-0/x86_64/vmlinux-6.18.51.config",
+  "configSha256": "47194037099c5ca0645c7b0530c40c2d40033cfa067bd20b6f5367bcd5206b58",
+  "hashesFromUnsignedCIDiscovery": true,
+  "externalAuthenticatedProvenance": false,
+  "guestBootVerified": false,
+  "vmAdmissionAllowed": false
+}

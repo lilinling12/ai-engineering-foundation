@@ -11,4 +11,4 @@
 - Before a live provider: isolated runtime, egress policies, least privilege, pinned tools, secret broker, approval gates, and a separately trusted evaluator.
 - GitHub workflow permissions read-only except explicitly scoped PR automation.
 
-- Local verification evidence never persists raw subprocess output or exception details. Only exit codes, bounded failure kinds and a redacted placeholder are written. This reduces accidental leakage, not a sandbox or trusted execution claim.
+- G0 local verifier evidence omits raw test stdout/stderr and exception strings; only exit code and bounded failure kind are retained. This avoids one accidental leakage channel but does not make the runner safe for unknown code.

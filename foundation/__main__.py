@@ -134,6 +134,15 @@ def main(argv: list[str] | None = None) -> int:
     propose.add_argument("--model", required=True)
     propose.add_argument("--task", type=Path)
     propose.add_argument("--permit-network", action="store_true")
+    review = subs.add_parser("review", help="Record explicit local SHA confirmation; NOT authenticated approval")
+    review.add_argument("--quarantine", required=True, type=Path)
+    review.add_argument("--confirm-sha", required=True)
+    review.add_argument("--decision", choices=["approve", "reject"], required=True)
+    review.add_argument("--dest", required=True, type=Path)
+    stage = subs.add_parser("stage", help="Static-check and stage approved source; NEVER execute it")
+    stage.add_argument("--quarantine", required=True, type=Path)
+    stage.add_argument("--approval", required=True, type=Path)
+    stage.add_argument("--dest", required=True, type=Path)
     codex = subs.add_parser("codex-propose", help="Opt-in actual Codex CLI inference (synthetic fixture only)")
     codex.add_argument("--model", required=True)
     codex.add_argument("--dest", required=True, type=Path)
@@ -160,6 +169,14 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "propose":
             from .model_gateway import run_live_proposal
             return run_live_proposal(args.dest, args.model, args.task, args.permit_network)
+        elif args.command == "review":
+            from .review_gate import record_decision
+            record_decision(args.quarantine, args.confirm_sha, args.decision, args.dest)
+            return 0
+        elif args.command == "stage":
+            from .review_gate import stage_reviewed_proposal
+            stage_reviewed_proposal(args.quarantine, args.approval, args.dest)
+            return 0
         elif args.command == "codex-propose":
             from .codex_live import codex_propose
             return codex_propose(
